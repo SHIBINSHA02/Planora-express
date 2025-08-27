@@ -1,11 +1,19 @@
 // server.js
 const express = require('express');
 const connectDB = require('./dbms/db');
+const teacherRouter = require('./router/Teacher'); // Import teacher router
+const seedTeachers = require('./router/SeedTeacher'); // Import seed router
 const app = express();
 const port = process.env.PORT || 3000;
 
 // Middleware to parse JSON bodies
 app.use(express.json());
+
+// Mount the teacher router
+app.use('/api/teachers', teacherRouter);
+
+// Mount the seed router
+app.use('/api/seed', seedTeachers);
 
 // Basic route for health check
 app.get('/api/health', (req, res) => {
@@ -23,8 +31,12 @@ app.use((err, req, res, next) => {
   res.status(500).json({ error: 'Something went wrong!' });
 });
 
-// Start the server
-app.listen(port, () => {
-  console.log(`Server is running on http://localhost:${port}`);
+// Start the server after connecting to the database
+connectDB().then(() => {
+  app.listen(port, () => {
+    console.log(`Server is running on http://localhost:${port}`);
+  });
+}).catch((err) => {
+  console.error('Failed to connect to the database:', err);
+  process.exit(1);
 });
-connectDB()
