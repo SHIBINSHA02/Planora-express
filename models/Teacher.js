@@ -1,5 +1,3 @@
-// models/Teacher.js
-// models/Teacher.js
 const mongoose = require('mongoose');
 
 const teacherSchema = new mongoose.Schema({
@@ -32,6 +30,28 @@ const teacherSchema = new mongoose.Schema({
       },
       message: 'At least one class is required',
     },
+  },
+  schedule: {
+    type: [[{ // 2D array for M*N grid
+      classroom: {
+        type: String,
+        trim: true,
+        default: null, // Allow null for unassigned slots
+      },
+      subject: {
+        type: String,
+        trim: true,
+        default: null, // Allow null for unassigned slots
+        validate: {
+          validator: function (value) {
+            // Ensure subject is either null or in teacher's subjects
+            return value === null || this.subjects.includes(value);
+          },
+          message: 'Subject must be one of the teacher\'s assigned subjects',
+        },
+      },
+    }]],
+    default: [], // Initialize as empty array
   },
 }, {
   timestamps: true, // Add createdAt and updatedAt fields
