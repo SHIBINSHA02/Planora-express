@@ -1,3 +1,4 @@
+// models/Teacher.js
 const mongoose = require('mongoose');
 
 const teacherSchema = new mongoose.Schema({
@@ -60,3 +61,8 @@ const teacherSchema = new mongoose.Schema({
 // Create and export the model
 const Teacher = mongoose.model('Teacher', teacherSchema);
 module.exports = Teacher;
+
+
+
+
+
