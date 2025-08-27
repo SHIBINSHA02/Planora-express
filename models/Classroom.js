@@ -22,7 +22,7 @@ const classroomSchema = new mongoose.Schema({
   },
   assignedTeachers: [{
     type: Number, // Array of teacher IDs
-    ref: 'Teacher',
+    ref: 'Teachers',
     validate: {
       validator: async function(value) {
         const teacher = await mongoose.model('Teacher').findOne({ id: value });
