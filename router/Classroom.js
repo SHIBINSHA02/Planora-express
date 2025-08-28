@@ -1,58 +1,68 @@
-// router/Classroom.js
-// router/Classromm.js
 const express = require('express');
 const router = express.Router();
-const Classroom = require('../models/Classroom'); // Path to your Classroom model
-const Teacher = require('../models/Teacher'); // Path to your Teacher model
+const Organisation = require('../models/Organisation'); // Updated to use Organisation model
+const Teacher = require('../models/Teacher'); // Path to Teacher model
 
-// POST: Create a new classroom
+// POST: Create a new classroom within an organisation
 router.post('/', async (req, res) => {
   try {
-    const { classroomId, assignedTeacher, assignedTeachers, assignedSubjects, grid } = req.body;
+    const { organisationId, admin, classroomId, assignedTeacher, assignedTeachers, assignedSubjects, rows, columns, grid } = req.body;
 
     // Validate input
-    if (!classroomId || !assignedTeacher || !assignedTeachers || !assignedSubjects || !grid) {
+    if (!organisationId || !admin || !classroomId || !assignedTeacher || !assignedTeachers || !assignedSubjects || !rows || !columns || !grid) {
       return res.status(400).json({ message: 'All fields are required' });
     }
 
-    // Create and save classroom
-    const classroom = new Classroom({
-      classroomId,
-      assignedTeacher,
-      assignedTeachers,
-      assignedSubjects,
-      grid
+    // Create and save organisation with classroom
+    const organisation = new Organisation({
+      organisation: {
+        organisationId,
+        admin
+      },
+      classrooms: {
+        classroomId,
+        assignedTeacher,
+        assignedTeachers,
+        assignedSubjects,
+        rows,
+        columns,
+        grid
+      }
     });
 
-    await classroom.save();
-    res.status(201).json({ message: 'Classroom created', classroom });
+    await organisation.save();
+    res.status(201).json({ message: 'Classroom created', organisation });
   } catch (error) {
     res.status(400).json({ message: 'Error creating classroom', error: error.message });
   }
 });
 
-// GET: Retrieve a classroom by classroomId
-router.get('/:classroomId', async (req, res) => {
+// GET: Retrieve a classroom by organisationId and classroomId
+router.get('/organisation/:organisationId/classroom/:classroomId', async (req, res) => {
   try {
-    const classroom = await Classroom.findOne({ classroomId: req.params.classroomId })
-      .populate('assignedTeacher')
-      .populate('assignedTeachers')
-      .populate('grid.$[].teachers');
+    const { organisationId, classroomId } = req.params;
+    const organisation = await Organisation.findOne({ 
+      'organisation.organisationId': organisationId,
+      'classrooms.classroomId': classroomId 
+    })
+      .populate('classrooms.assignedTeacher')
+      .populate('classrooms.assignedTeachers')
+      .populate('classrooms.grid.teachers');
 
-    if (!classroom) {
-      return res.status(404).json({ message: 'Classroom not found' });
+    if (!organisation || !organisation.classrooms) {
+      return res.status(404).json({ message: 'Classroom or Organisation not found' });
     }
 
-    res.status(200).json(classroom);
+    res.status(200).json(organisation.classrooms);
   } catch (error) {
     res.status(500).json({ message: 'Error retrieving classroom', error: error.message });
   }
 });
 
 // PATCH: Update a specific cell in the grid
-router.patch('/:classroomId/grid/:row/:col', async (req, res) => {
+router.patch('/organisation/:organisationId/classroom/:classroomId/grid/:row/:col', async (req, res) => {
   try {
-    const { classroomId, row, col } = req.params;
+    const { organisationId, classroomId, row, col } = req.params;
     const { teachers, subjects } = req.body;
 
     // Validate input
@@ -60,70 +70,81 @@ router.patch('/:classroomId/grid/:row/:col', async (req, res) => {
       return res.status(400).json({ message: 'Teachers and subjects must be arrays' });
     }
 
-    // Find the classroom
-    const classroom = await Classroom.findOne({ classroomId });
-    if (!classroom) {
-      return res.status(404).json({ message: 'Classroom not found' });
+    // Find the organisation with the classroom
+    const organisation = await Organisation.findOne({ 
+      'organisation.organisationId': organisationId,
+      'classrooms.classroomId': classroomId 
+    });
+    if (!organisation || !organisation.classrooms) {
+      return res.status(404).json({ message: 'Classroom or Organisation not found' });
     }
 
     // Validate row and col indices
     const rowIndex = parseInt(row);
     const colIndex = parseInt(col);
+    const { rows, columns } = organisation.classrooms;
     if (
-      isNaN(rowIndex) || rowIndex < 0 || rowIndex >= classroom.grid.length ||
-      isNaN(colIndex) || colIndex < 0 || colIndex >= classroom.grid[0].length
+      isNaN(rowIndex) || rowIndex < 0 || rowIndex >= rows ||
+      isNaN(colIndex) || colIndex < 0 || colIndex >= columns
     ) {
       return res.status(400).json({ message: 'Invalid row or column index' });
     }
 
     // Update the specific grid cell
-    classroom.grid[rowIndex][colIndex] = { teachers, subjects };
+    organisation.classrooms.grid[rowIndex * columns + colIndex] = { teachers, subjects };
 
     // Validate the updated document
-    await classroom.validate();
+    await organisation.validate();
 
-    // Save the updated classroom
-    await classroom.save();
-    res.status(200).json({ message: 'Grid cell updated', classroom });
+    // Save the updated organisation
+    await organisation.save();
+    res.status(200).json({ message: 'Grid cell updated', classrooms: organisation.classrooms });
   } catch (error) {
     res.status(400).json({ message: 'Error updating grid cell', error: error.message });
   }
 });
 
-// PUT: Update an entire classroom by classroomId
-router.put('/:classroomId', async (req, res) => {
+// PUT: Update an entire classroom by organisationId and classroomId
+router.put('/organisation/:organisationId/classroom/:classroomId', async (req, res) => {
   try {
-    const { classroomId } = req.params;
-    const { assignedTeacher, assignedTeachers, assignedSubjects, grid } = req.body;
+    const { organisationId, classroomId } = req.params;
+    const { assignedTeacher, assignedTeachers, assignedSubjects, rows, columns, grid } = req.body;
 
     // Validate input
-    if (!assignedTeacher || !assignedTeachers || !assignedSubjects || !grid) {
-      return res.status(400).json({ message: 'All fields (assignedTeacher, assignedTeachers, assignedSubjects, grid) are required' });
+    if (!assignedTeacher || !assignedTeachers || !assignedSubjects || !rows || !columns || !grid) {
+      return res.status(400).json({ message: 'All fields (assignedTeacher, assignedTeachers, assignedSubjects, rows, columns, grid) are required' });
     }
 
-    // Find and update the classroom
-    const classroom = await Classroom.findOneAndUpdate(
-      { classroomId },
-      {
-        assignedTeacher,
-        assignedTeachers,
-        assignedSubjects,
-        grid,
-        updatedAt: new Date() // Ensure updatedAt is refreshed
+    // Find and update the organisation with the classroom
+    const organisation = await Organisation.findOneAndUpdate(
+      { 
+        'organisation.organisationId': organisationId,
+        'classrooms.classroomId': classroomId 
       },
       {
-        new: true, // Return the updated document
-        runValidators: true // Enforce schema validations
+        $set: {
+          'classrooms.assignedTeacher': assignedTeacher,
+          'classrooms.assignedTeachers': assignedTeachers,
+          'classrooms.assignedSubjects': assignedSubjects,
+          'classrooms.rows': rows,
+          'classrooms.columns': columns,
+          'classrooms.grid': grid,
+          'classrooms.updatedAt': new Date()
+        }
+      },
+      {
+        new: true,
+        runValidators: true
       }
-    ).populate('assignedTeacher')
-     .populate('assignedTeachers')
-     .populate('grid.$[].teachers');
+    ).populate('classrooms.assignedTeacher')
+     .populate('classrooms.assignedTeachers')
+     .populate('classrooms.grid.teachers');
 
-    if (!classroom) {
-      return res.status(404).json({ message: 'Classroom not found' });
+    if (!organisation || !organisation.classrooms) {
+      return res.status(404).json({ message: 'Classroom or Organisation not found' });
     }
 
-    res.status(200).json({ message: 'Classroom updated', classroom });
+    res.status(200).json({ message: 'Classroom updated', classrooms: organisation.classrooms });
   } catch (error) {
     res.status(400).json({ message: 'Error updating classroom', error: error.message });
   }

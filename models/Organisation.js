@@ -1,7 +1,23 @@
+// models/Organisation.js
 // models/Classroom.js
 const mongoose = require('mongoose');
 
-const classroomSchema = new mongoose.Schema({
+const OrganisationSchema = new mongoose.Schema({
+  organisation:{
+     organisationId: {
+    type: String,
+    required: true,
+    unique: true,
+    trim: true
+  },
+  admin :{
+    type:String,
+    required:true,
+    unique:true,
+    trime:true
+  }
+  },
+  classrooms: {
   classroomId: {
     type: String,
     required: true,
@@ -87,24 +103,25 @@ const classroomSchema = new mongoose.Schema({
       }
     }]
   }]
-}, {
-  timestamps: true
+}
+},{
+  timestamps :true
 });
 
 // Method to get cell by row and column indices
-classroomSchema.methods.getCell = function(row, col) {
+OrganisationSchema.methods.getCell = function(row, col) {
   const index = row * this.columns + col;
   return this.grid[index];
 };
 
 // Method to set cell by row and column indices
-classroomSchema.methods.setCell = function(row, col, cellData) {
+OrganisationSchema.methods.setCell = function(row, col, cellData) {
   const index = row * this.columns + col;
   this.grid[index] = cellData;
 };
 
 // Validate grid size matches rows * columns
-classroomSchema.pre('save', function(next) {
+OrganisationSchema.pre('save', function(next) {
   const expectedSize = this.rows * this.columns;
   if (this.grid.length !== expectedSize) {
     return next(new Error(`Grid size ${this.grid.length} doesn't match rows×columns ${expectedSize}`));
@@ -113,9 +130,9 @@ classroomSchema.pre('save', function(next) {
 });
 
 // Indexes for efficient querying
-classroomSchema.index({ classroomId: 1 });
-classroomSchema.index({ assignedTeacher: 1 });
-classroomSchema.index({ assignedTeachers: 1 });
+OrganisationSchema.index({ classroomId: 1 });
+OrganisationSchema.index({ assignedTeacher: 1 });
+OrganisationSchema.index({ assignedTeachers: 1 });
 
-const Classroom = mongoose.model('Classroom', classroomSchema);
-module.exports = Classroom;
+const Organisation = mongoose.model('Organisation', OrganisationSchema);
+module.exports = OrganisationSchema;
