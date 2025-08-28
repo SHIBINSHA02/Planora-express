@@ -20,6 +20,7 @@
   "homepage": "https://github.com/SHIBINSHA02/Planora-express#readme",
   "dependencies": {
     "express": "^5.1.0",
+    "is-empty": "^1.2.0",
     "mongoose": "^8.18.0"
   }
 }

@@ -1,3 +1,4 @@
+// router/Organisation.js
 const express = require('express');
 const router = express.Router();
 const mongoose = require('mongoose');
@@ -75,7 +76,7 @@ router.post('/', async (req, res) => {
 });
 
 // GET: Retrieve a classroom by organisationId and classroomId
-router.get('/organisation/:organisationId/classroom/:classroomId', async (req, res) => {
+router.get('/:organisationId/classroom/:classroomId', async (req, res) => {
   try {
     const { organisationId, classroomId } = req.params;
     const organisation = await Organisation.findOne({
@@ -97,7 +98,7 @@ router.get('/organisation/:organisationId/classroom/:classroomId', async (req, r
 });
 
 // PATCH: Update a specific cell in the grid
-router.patch('/organisation/:organisationId/classroom/:classroomId/grid/:row/:col', async (req, res) => {
+router.patch('/:organisationId/classroom/:classroomId/grid/:row/:col', async (req, res) => {
   try {
     const { organisationId, classroomId, row, col } = req.params;
     const { teachers, subjects } = req.body;
@@ -148,7 +149,7 @@ router.patch('/organisation/:organisationId/classroom/:classroomId/grid/:row/:co
 });
 
 // PUT: Update an entire classroom by organisationId and classroomId
-router.put('/organisation/:organisationId/classroom/:classroomId', async (req, res) => {
+router.put('/:organisationId/classroom/:classroomId', async (req, res) => {
   try {
     const { organisationId, classroomId } = req.params;
     const { assignedTeacher, assignedTeachers, assignedSubjects, rows, columns, grid } = req.body;
