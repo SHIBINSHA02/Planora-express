@@ -3,8 +3,8 @@ const express = require('express');
 const connectDB = require('./dbms/db');
 const teacherRouter = require('./router/Teacher'); 
 const seedTeachers = require('./router/SeedTeacher'); 
-const seedClassrooms =require('./router/seedOrganisation');
-const Classroom  =require('./router/Classroom')
+const seedOrganisation =require('./router/seedOrganisation');
+const Organisation  =require('./router/Organisation')
 const app = express();
 const port = process.env.PORT || 3000;
 
@@ -16,8 +16,8 @@ app.use('/api/teachers', teacherRouter);
 
 // Mount the seed router
 app.use('/api/seed', seedTeachers);
-app.use('/api/classroom',Classroom)
-app.use('/api/seeds',seedClassrooms)
+app.use('/api/organisation',Organisation)
+app.use('/api/seeds',seedOrganisation)
 
 // Basic route for health check
 app.get('/api/health', (req, res) => {
