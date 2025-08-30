@@ -6,29 +6,8 @@ const isEmpty = require('is-empty');
 
 const Organisation = require('../models/Organisation'); // Updated to use Organisation model
 const Teacher = require('../models/Teacher'); // Path to Teacher model
+const { checkTeachersExist } = require('../controllers/Teacher/teachersController'); // Import the function
 
-// Helper function to validate teacher IDs
-const checkTeachersExist = async (teacherIds) => {
-  const validIds = Array.isArray(teacherIds) ? teacherIds : [teacherIds];
-  if (validIds.length === 0) {
-    return { success: true, message: 'No teachers to validate.' };
-  }
-
-  // Ensure all IDs are valid Mongoose ObjectIds
-  for (const id of validIds) {
-    if (!mongoose.Types.ObjectId.isValid(id)) {
-      return { success: false, message: `Invalid ObjectId format for ID: ${id}` };
-    }
-  }
-
-  // Check if teachers exist in the database
-  const foundTeachers = await Teacher.find({ '_id': { '$in': validIds } });
-
-  if (foundTeachers.length !== validIds.length) {
-    return { success: false, message: 'One or more teacher IDs do not exist.' };
-  }
-  return { success: true, message: 'All teachers exist.' };
-};
 
 // POST: Create a new classroom within an organisation
 router.post('/', async (req, res) => {
@@ -40,7 +19,7 @@ router.post('/', async (req, res) => {
       return res.status(400).json({ message: 'All fields are required' });
     }
 
-    // Validate teacher existence and IDs
+    // Validate teacher existence and IDs using the imported function
     const assignedTeacherCheck = await checkTeachersExist(assignedTeacher);
     const assignedTeachersCheck = await checkTeachersExist(assignedTeachers);
 
@@ -74,7 +53,6 @@ router.post('/', async (req, res) => {
     res.status(400).json({ message: 'Error creating classroom', error: error.message });
   }
 });
-
 // GET: Retrieve a classroom by organisationId and classroomId
 router.get('/:organisationId/classroom/:classroomId', async (req, res) => {
   try {
@@ -97,7 +75,6 @@ router.get('/:organisationId/classroom/:classroomId', async (req, res) => {
   }
 });
 
-// PATCH: Update a specific cell in the grid
 router.patch('/:organisationId/classroom/:classroomId/grid/:row/:col', async (req, res) => {
   try {
     const { organisationId, classroomId, row, col } = req.params;
@@ -108,7 +85,6 @@ router.patch('/:organisationId/classroom/:classroomId/grid/:row/:col', async (re
       return res.status(400).json({ message: 'Teachers and subjects must be arrays' });
     }
 
-    // Find the organisation with the classroom
     const organisation = await Organisation.findOne({
       'organisation.organisationId': organisationId,
       'classrooms.classroomId': classroomId
@@ -117,7 +93,6 @@ router.patch('/:organisationId/classroom/:classroomId/grid/:row/:col', async (re
       return res.status(404).json({ message: 'Classroom or Organisation not found' });
     }
 
-    // Validate row and col indices
     const rowIndex = parseInt(row);
     const colIndex = parseInt(col);
     const {
