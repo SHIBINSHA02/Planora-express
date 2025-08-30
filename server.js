@@ -1,5 +1,6 @@
 // server.js
 const express = require('express');
+const cors = require('cors');
 const connectDB = require('./dbms/db');
 const teacherRouter = require('./router/Teacher'); 
 const seedTeachers = require('./router/SeedTeacher'); 
@@ -7,10 +8,11 @@ const seedOrganisation =require('./router/seedOrganisation');
 const Organisation  =require('./router/Organisation')
 const app = express();
 const port = process.env.PORT || 3000;
-
+const morgan = require('morgan')
 // Middleware to parse JSON bodies
 app.use(express.json());
-
+app.use(cors());
+app.use(morgan('tiny'));
 // Mount the teacher router
 app.use('/api/teachers', teacherRouter);
 

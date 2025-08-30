@@ -19,8 +19,10 @@
   },
   "homepage": "https://github.com/SHIBINSHA02/Planora-express#readme",
   "dependencies": {
+    "cors": "^2.8.5",
     "express": "^5.1.0",
     "is-empty": "^1.2.0",
-    "mongoose": "^8.18.0"
+    "mongoose": "^8.18.0",
+    "morgan": "^1.10.1"
   }
 }

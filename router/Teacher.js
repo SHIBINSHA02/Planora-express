@@ -3,6 +3,17 @@ const express = require('express');
 const router = express.Router();
 const Teacher = require('../models/Teacher');
 
+
+
+router.get('/', async (req, res) => {
+  try {
+    const teachers = await Teacher.find(); // Fetch all teachers from the database
+    res.status(200).json(teachers);
+  } catch (error) {
+    console.error('Error fetching all teachers:', error);
+    res.status(500).json({ message: 'Error fetching teachers', error: error.message });
+  }
+});
 // GET teacher by ID
 router.get('/:id', async (req, res) => {
   try {
