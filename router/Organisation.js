@@ -6,7 +6,7 @@ const isEmpty = require('is-empty');
 
 const Organisation = require('../models/Organisation'); // Updated to use Organisation model
 const Teacher = require('../models/Teacher'); // Path to Teacher model
-const { checkTeachersExist } = require('../controllers/Teacher/Teacher'); // Import the function
+const { checkTeachersExist, checkTeachersExistInOrganisation } = require('../controllers/Teacher/Teacher'); // Import the functions
 
 // POST: Register a new teacher within an organisation
 router.post('/:organisationId/teachers', async (req, res) => {
@@ -190,9 +190,9 @@ router.post('/', async (req, res) => {
       return res.status(400).json({ message: 'All fields are required' });
     }
 
-    // Validate teacher existence and IDs using the imported function
-    const assignedTeacherCheck = await checkTeachersExist(assignedTeacher);
-    const assignedTeachersCheck = await checkTeachersExist(assignedTeachers);
+    // Validate teacher existence and IDs within the organisation
+    const assignedTeacherCheck = await checkTeachersExistInOrganisation(assignedTeacher, organisationId);
+    const assignedTeachersCheck = await checkTeachersExistInOrganisation(assignedTeachers, organisationId);
 
     if (!assignedTeacherCheck.success) {
       return res.status(400).json({ message: assignedTeacherCheck.message });
@@ -305,9 +305,9 @@ router.put('/:organisationId/classroom/:classroomId', async (req, res) => {
       return res.status(400).json({ message: 'All fields (assignedTeacher, assignedTeachers, assignedSubjects, rows, columns, grid) are required' });
     }
 
-    // Validate teacher existence and IDs
-    const assignedTeacherCheck = await checkTeachersExist(assignedTeacher);
-    const assignedTeachersCheck = await checkTeachersExist(assignedTeachers);
+    // Validate teacher existence and IDs within the organisation
+    const assignedTeacherCheck = await checkTeachersExistInOrganisation(assignedTeacher, organisationId);
+    const assignedTeachersCheck = await checkTeachersExistInOrganisation(assignedTeachers, organisationId);
 
     if (!assignedTeacherCheck.success) {
       return res.status(400).json({ message: assignedTeacherCheck.message });
