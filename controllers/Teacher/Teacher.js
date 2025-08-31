@@ -1,6 +1,6 @@
 // controllers/Teacher/Teacher.js
 const mongoose = require('mongoose');
-const Teacher = require('../models/Teacher'); // Path to your Teacher model
+const Teacher = require('../../models/Teacher'); // Path to your Teacher model
 
 // Helper function to validate teacher IDs
 const checkTeachersExist = async (teacherIds) => {

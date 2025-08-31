@@ -39,6 +39,10 @@ const organisationSchema = new mongoose.Schema({
       required: true,
       unique: true
     },
+    name: {
+      type: String,
+      required: true
+    },
     admin: {
       type: String,
       required: true
