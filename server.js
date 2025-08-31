@@ -5,7 +5,8 @@ const connectDB = require('./dbms/db');
 const teacherRouter = require('./router/Teacher'); 
 const seedTeachers = require('./router/SeedTeacher'); 
 const seedOrganisation =require('./router/seedOrganisation');
-const Organisation  =require('./router/Organisation')
+const Organisation  =require('./router/Organisation');
+const authRouter = require('./router/Auth');
 const app = express();
 const port = process.env.PORT || 3000;
 const morgan = require('morgan')
@@ -20,6 +21,9 @@ app.use('/api/teachers', teacherRouter);
 app.use('/api/seed', seedTeachers);
 app.use('/api/organisation',Organisation)
 app.use('/api/seeds',seedOrganisation)
+
+// Mount the auth router
+app.use('/api/auth', authRouter);
 
 // Basic route for health check
 app.get('/api/health', (req, res) => {
