@@ -44,6 +44,10 @@ const organisationSchema = new mongoose.Schema({
       required: true
     }
   },
+  teachers: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Teacher'
+  }],
   classrooms: {
     type: classroomSchema, // Classrooms is a subdocument
     required: true

@@ -5,7 +5,11 @@ const teacherSchema = new mongoose.Schema({
   id: {
     type: Number,
     required: true,
-    unique: true, // Ensure the ID is unique
+  },
+  organisationId: {
+    type: String,
+    required: true,
+    ref: 'Organisation'
   },
   name: {
     type: String,
@@ -89,7 +93,8 @@ teacherSchema.pre('save', function(next) {
 });
 
 // Indexes for efficient querying
-teacherSchema.index({ id: 1 });
+teacherSchema.index({ organisationId: 1, id: 1 }, { unique: true }); // Unique teacher ID within organization
+teacherSchema.index({ organisationId: 1 });
 teacherSchema.index({ name: 1 });
 teacherSchema.index({ subjects: 1 });
 teacherSchema.index({ classes: 1 });
