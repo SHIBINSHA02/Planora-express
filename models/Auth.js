@@ -1,4 +1,3 @@
-// models/Auth.js
 const mongoose = require('mongoose');
 
 // Define the schema for organization access permissions
@@ -49,19 +48,19 @@ const authSchema = new mongoose.Schema({
   userId: {
     type: String,
     required: true,
-    unique: true
+    unique: true // This property automatically creates a unique index
   },
   username: {
     type: String,
     required: true,
-    unique: true,
+    unique: true, // This property automatically creates a unique index
     trim: true,
     lowercase: true
   },
   email: {
     type: String,
     required: true,
-    unique: true,
+    unique: true, // This property automatically creates a unique index
     trim: true,
     lowercase: true,
     match: [/^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/, 'Please enter a valid email']
@@ -209,10 +208,8 @@ authSchema.pre('save', function(next) {
   next();
 });
 
-// Indexes for efficient querying
-authSchema.index({ username: 1 });
-authSchema.index({ email: 1 });
-authSchema.index({ userId: 1 });
+// Indexes for efficient querying. The unique indexes for userId, username, and email
+// are created by the `unique: true` property on the schema definition.
 authSchema.index({ role: 1 });
 authSchema.index({ isActive: 1 });
 authSchema.index({ 'organizationAccess.organisationId': 1 });
