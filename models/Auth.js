@@ -1,3 +1,4 @@
+// models/Auth.js
 const mongoose = require('mongoose');
 
 // Define the schema for organization access permissions
@@ -97,10 +98,6 @@ const authSchema = new mongoose.Schema({
   loginAttempts: {
     type: Number,
     default: 0
-  },
-  lockUntil: {
-    type: Date,
-    default: null
   }
 }, {
   timestamps: true
@@ -111,10 +108,7 @@ authSchema.virtual('fullName').get(function() {
   return `${this.firstName} ${this.lastName}`;
 });
 
-// Virtual for account locked status
-authSchema.virtual('isLocked').get(function() {
-  return !!(this.lockUntil && this.lockUntil > Date.now());
-});
+
 
 // Method to check if user has access to an organization
 authSchema.methods.hasAccessToOrganization = function(organisationId, permission = 'view') {
@@ -174,28 +168,15 @@ authSchema.methods.getAccessibleOrganizations = function(permission = 'view') {
 
 // Method to increment login attempts
 authSchema.methods.incLoginAttempts = function() {
-  // If we have a previous lock that has expired, restart at 1
-  if (this.lockUntil && this.lockUntil < Date.now()) {
-    return this.updateOne({
-      $unset: { lockUntil: 1 },
-      $set: { loginAttempts: 1 }
-    });
-  }
-  
-  const updates = { $inc: { loginAttempts: 1 } };
-  
-  // Lock account after 5 failed attempts for 2 hours
-  if (this.loginAttempts + 1 >= 5 && !this.isLocked) {
-    updates.$set = { lockUntil: Date.now() + 2 * 60 * 60 * 1000 }; // 2 hours
-  }
-  
-  return this.updateOne(updates);
+  return this.updateOne({
+    $inc: { loginAttempts: 1 }
+  });
 };
 
 // Method to reset login attempts
 authSchema.methods.resetLoginAttempts = function() {
   return this.updateOne({
-    $unset: { loginAttempts: 1, lockUntil: 1 },
+    $unset: { loginAttempts: 1 },
     $set: { lastLogin: new Date() }
   });
 };

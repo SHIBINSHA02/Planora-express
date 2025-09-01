@@ -69,10 +69,7 @@ router.post('/login', async (req, res) => {
       return res.status(401).json({ message: 'Invalid credentials' });
     }
 
-    // Check if account is locked
-    if (user.isLocked) {
-      return res.status(423).json({ message: 'Account is temporarily locked due to too many failed login attempts' });
-    }
+
 
     // Check password (simple comparison for now)
     if (user.password !== password) {
@@ -316,7 +313,7 @@ router.post('/users/:userId/reset-login-attempts', async (req, res) => {
     const user = await Auth.findOneAndUpdate(
       { userId },
       { 
-        $unset: { loginAttempts: 1, lockUntil: 1 },
+        $unset: { loginAttempts: 1 },
         updatedAt: new Date()
       },
       { new: true }
