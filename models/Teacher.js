@@ -67,6 +67,47 @@ const teacherSchema = new mongoose.Schema({
       },
     },
   }],
+  // OTP and access control fields
+  accessOTP: {
+    code: {
+      type: String,
+      default: null
+    },
+    expiresAt: {
+      type: Date,
+      default: null
+    },
+    isUsed: {
+      type: Boolean,
+      default: false
+    }
+  },
+  permissions: {
+    view: {
+      type: Boolean,
+      default: false
+    },
+    edit: {
+      type: Boolean,
+      default: false
+    },
+    delete: {
+      type: Boolean,
+      default: false
+    },
+    manageTeachers: {
+      type: Boolean,
+      default: false
+    },
+    manageClassrooms: {
+      type: Boolean,
+      default: false
+    }
+  },
+  isActive: {
+    type: Boolean,
+    default: true
+  },
 }, {
   timestamps: true, // Add createdAt and updatedAt fields
 });
@@ -81,6 +122,53 @@ teacherSchema.methods.getScheduleSlot = function(row, col) {
 teacherSchema.methods.setScheduleSlot = function(row, col, slotData) {
   const index = row * this.scheduleColumns + col;
   this.schedule[index] = slotData;
+};
+
+// Method to generate OTP for organization access
+teacherSchema.methods.generateAccessOTP = function() {
+  const otp = Math.floor(100000 + Math.random() * 900000).toString(); // 6-digit OTP
+  const expiresAt = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes from now
+  
+  this.accessOTP = {
+    code: otp,
+    expiresAt: expiresAt,
+    isUsed: false
+  };
+  
+  return otp;
+};
+
+// Method to validate OTP
+teacherSchema.methods.validateOTP = function(otp) {
+  if (!this.accessOTP || !this.accessOTP.code) {
+    return { valid: false, message: 'No OTP found' };
+  }
+  
+  if (this.accessOTP.isUsed) {
+    return { valid: false, message: 'OTP has already been used' };
+  }
+  
+  if (new Date() > this.accessOTP.expiresAt) {
+    return { valid: false, message: 'OTP has expired' };
+  }
+  
+  if (this.accessOTP.code !== otp) {
+    return { valid: false, message: 'Invalid OTP' };
+  }
+  
+  return { valid: true, message: 'OTP is valid' };
+};
+
+// Method to mark OTP as used
+teacherSchema.methods.markOTPAsUsed = function() {
+  if (this.accessOTP) {
+    this.accessOTP.isUsed = true;
+  }
+};
+
+// Method to check if teacher has edit access
+teacherSchema.methods.hasEditAccess = function() {
+  return this.isActive && this.permissions.edit;
 };
 
 // Validate schedule size matches scheduleRows * scheduleColumns

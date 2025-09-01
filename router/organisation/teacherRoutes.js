@@ -29,7 +29,7 @@ router.post('/:organisationId/teachers', async (req, res) => {
       return res.status(400).json({ message: 'Teacher with this ID already exists in this organisation' });
     }
 
-    // Create new teacher
+    // Create new teacher with default permissions
     const teacher = new Teacher({
       id,
       organisationId,
@@ -38,7 +38,15 @@ router.post('/:organisationId/teachers', async (req, res) => {
       classes,
       scheduleRows: scheduleRows || 7,
       scheduleColumns: scheduleColumns || 8,
-      schedule: new Array((scheduleRows || 7) * (scheduleColumns || 8)).fill({ classroom: null, subject: null })
+      schedule: new Array((scheduleRows || 7) * (scheduleColumns || 8)).fill({ classroom: null, subject: null }),
+      permissions: {
+        view: true, // Default view permission
+        edit: false, // Edit permission must be explicitly granted
+        delete: false,
+        manageTeachers: false,
+        manageClassrooms: false
+      },
+      isActive: true
     });
 
     const savedTeacher = await teacher.save();
