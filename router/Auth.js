@@ -8,7 +8,7 @@ const isEmpty = require('is-empty');
 // POST: Register a new user
 router.post('/register', async (req, res) => {
   try {
-    const { username, email, password, firstName, lastName, role } = req.body;
+    const { username, email, password, firstName, lastName } = req.body;
 
     // Validate input
     if (isEmpty(username) || isEmpty(email) || isEmpty(password) || isEmpty(firstName) || isEmpty(lastName)) {
@@ -31,7 +31,7 @@ router.post('/register', async (req, res) => {
       password, // Note: In production, this should be hashed
       firstName,
       lastName,
-      role: role || 'viewer'
+
     });
 
     const savedUser = await user.save();
@@ -61,8 +61,7 @@ router.post('/login', async (req, res) => {
 
     // Find user by username or email
     const user = await Auth.findOne({
-      $or: [{ username }, { email: username }],
-      isActive: true
+      $or: [{ username }, { email: username }]
     });
 
     if (!user) {
@@ -73,12 +72,11 @@ router.post('/login', async (req, res) => {
 
     // Check password (simple comparison for now)
     if (user.password !== password) {
-      await user.incLoginAttempts();
       return res.status(401).json({ message: 'Invalid credentials' });
     }
 
-    // Reset login attempts on successful login
-    await user.resetLoginAttempts();
+    // Update last login on successful login
+    await user.updateLastLogin();
 
     // Remove password from response
     const userResponse = user.toObject();
@@ -96,7 +94,7 @@ router.post('/login', async (req, res) => {
 // GET: Get all users (admin only)
 router.get('/users', async (req, res) => {
   try {
-    const users = await Auth.find({ isActive: true }).select('-password');
+    const users = await Auth.find({}).select('-password');
     
     res.status(200).json({
       message: 'Users retrieved successfully',
@@ -112,7 +110,7 @@ router.get('/users/:userId', async (req, res) => {
   try {
     const { userId } = req.params;
     
-    const user = await Auth.findOne({ userId, isActive: true }).select('-password');
+    const user = await Auth.findOne({ userId }).select('-password');
     
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
@@ -131,16 +129,14 @@ router.get('/users/:userId', async (req, res) => {
 router.put('/users/:userId', async (req, res) => {
   try {
     const { userId } = req.params;
-    const { firstName, lastName, email, role, isActive } = req.body;
+    const { firstName, lastName, email } = req.body;
 
     const user = await Auth.findOneAndUpdate(
       { userId },
-      { 
+            { 
         firstName, 
         lastName, 
         email, 
-        role, 
-        isActive,
         updatedAt: new Date()
       },
       { new: true, runValidators: true }
@@ -177,7 +173,7 @@ router.post('/users/:userId/organization-access', async (req, res) => {
     }
 
     // Find user
-    const user = await Auth.findOne({ userId, isActive: true });
+    const user = await Auth.findOne({ userId });
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
     }
@@ -207,7 +203,7 @@ router.delete('/users/:userId/organization-access/:organisationId', async (req, 
     const { userId, organisationId } = req.params;
 
     // Find user
-    const user = await Auth.findOne({ userId, isActive: true });
+    const user = await Auth.findOne({ userId });
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
     }
@@ -233,7 +229,7 @@ router.get('/users/:userId/organizations', async (req, res) => {
     const { permission = 'view' } = req.query;
 
     // Find user
-    const user = await Auth.findOne({ userId, isActive: true });
+    const user = await Auth.findOne({ userId });
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
     }
@@ -261,7 +257,7 @@ router.post('/check-access', async (req, res) => {
     }
 
     // Find user
-    const user = await Auth.findOne({ userId, isActive: true });
+    const user = await Auth.findOne({ userId });
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
     }
@@ -281,55 +277,8 @@ router.post('/check-access', async (req, res) => {
   }
 });
 
-// DELETE: Deactivate user (soft delete)
-router.delete('/users/:userId', async (req, res) => {
-  try {
-    const { userId } = req.params;
 
-    const user = await Auth.findOneAndUpdate(
-      { userId },
-      { isActive: false, updatedAt: new Date() },
-      { new: true }
-    ).select('-password');
 
-    if (!user) {
-      return res.status(404).json({ message: 'User not found' });
-    }
 
-    res.status(200).json({
-      message: 'User deactivated successfully',
-      user
-    });
-  } catch (error) {
-    res.status(500).json({ message: 'Error deactivating user', error: error.message });
-  }
-});
-
-// POST: Reset user login attempts (admin only)
-router.post('/users/:userId/reset-login-attempts', async (req, res) => {
-  try {
-    const { userId } = req.params;
-
-    const user = await Auth.findOneAndUpdate(
-      { userId },
-      { 
-        $unset: { loginAttempts: 1 },
-        updatedAt: new Date()
-      },
-      { new: true }
-    ).select('-password');
-
-    if (!user) {
-      return res.status(404).json({ message: 'User not found' });
-    }
-
-    res.status(200).json({
-      message: 'Login attempts reset successfully',
-      user
-    });
-  } catch (error) {
-    res.status(500).json({ message: 'Error resetting login attempts', error: error.message });
-  }
-});
 
 module.exports = router;

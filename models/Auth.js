@@ -81,23 +81,10 @@ const authSchema = new mongoose.Schema({
     required: true,
     trim: true
   },
-  role: {
-    type: String,
-    enum: ['super_admin', 'admin', 'teacher', 'viewer'],
-    default: 'viewer'
-  },
-  isActive: {
-    type: Boolean,
-    default: true
-  },
   organizationAccess: [organizationAccessSchema],
   lastLogin: {
     type: Date,
     default: null
-  },
-  loginAttempts: {
-    type: Number,
-    default: 0
   }
 }, {
   timestamps: true
@@ -112,10 +99,6 @@ authSchema.virtual('fullName').get(function() {
 
 // Method to check if user has access to an organization
 authSchema.methods.hasAccessToOrganization = function(organisationId, permission = 'view') {
-  if (this.role === 'super_admin') {
-    return true; // Super admin has access to everything
-  }
-  
   const access = this.organizationAccess.find(access => 
     access.organisationId === organisationId && access.permissions[permission]
   );
@@ -153,10 +136,6 @@ authSchema.methods.revokeOrganizationAccess = function(organisationId) {
 
 // Method to get accessible organizations
 authSchema.methods.getAccessibleOrganizations = function(permission = 'view') {
-  if (this.role === 'super_admin') {
-    return []; // Super admin doesn't need specific organization access
-  }
-  
   return this.organizationAccess
     .filter(access => access.permissions[permission])
     .map(access => ({
@@ -166,17 +145,11 @@ authSchema.methods.getAccessibleOrganizations = function(permission = 'view') {
     }));
 };
 
-// Method to increment login attempts
-authSchema.methods.incLoginAttempts = function() {
-  return this.updateOne({
-    $inc: { loginAttempts: 1 }
-  });
-};
 
-// Method to reset login attempts
-authSchema.methods.resetLoginAttempts = function() {
+
+// Method to update last login
+authSchema.methods.updateLastLogin = function() {
   return this.updateOne({
-    $unset: { loginAttempts: 1 },
     $set: { lastLogin: new Date() }
   });
 };
@@ -191,8 +164,6 @@ authSchema.pre('save', function(next) {
 
 // Indexes for efficient querying. The unique indexes for userId, username, and email
 // are created by the `unique: true` property on the schema definition.
-authSchema.index({ role: 1 });
-authSchema.index({ isActive: 1 });
 authSchema.index({ 'organizationAccess.organisationId': 1 });
 
 // Create and export the model
