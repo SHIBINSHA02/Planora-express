@@ -67,21 +67,7 @@ const teacherSchema = new mongoose.Schema({
       },
     },
   }],
-  // OTP and access control fields
-  accessOTP: {
-    code: {
-      type: String,
-      default: null
-    },
-    expiresAt: {
-      type: Date,
-      default: null
-    },
-    isUsed: {
-      type: Boolean,
-      default: false
-    }
-  },
+ 
   permissions: {
     view: {
       type: Boolean,

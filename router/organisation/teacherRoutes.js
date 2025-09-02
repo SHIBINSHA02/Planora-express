@@ -45,8 +45,7 @@ router.post('/:organisationId/teachers', async (req, res) => {
         delete: false,
         manageTeachers: false,
         manageClassrooms: false
-      },
-      isActive: true
+      }
     });
 
     const savedTeacher = await teacher.save();

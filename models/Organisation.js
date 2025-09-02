@@ -56,35 +56,7 @@ const organisationSchema = new mongoose.Schema({
     type: classroomSchema, // Classrooms is a subdocument
     required: true
   },
-  // OTP settings for organization access
-  otpSettings: {
-    enabled: {
-      type: Boolean,
-      default: true
-    },
-    expirationMinutes: {
-      type: Number,
-      default: 15 // OTP expires in 15 minutes
-    },
-    maxAttempts: {
-      type: Number,
-      default: 3 // Maximum OTP validation attempts
-    }
-  },
-  // Track OTP usage for security
-  otpUsage: [{
-    teacherId: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'Teacher'
-    },
-    otpCode: String,
-    usedAt: {
-      type: Date,
-      default: Date.now
-    },
-    ipAddress: String,
-    userAgent: String
-  }]
+ 
 });
 
 // Create and export the Organisation model
