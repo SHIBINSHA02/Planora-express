@@ -10,11 +10,23 @@ const Teacher = require('../../models/Teacher');
 router.post('/:organisationId/teachers', async (req, res) => {
   try {
     const { organisationId } = req.params;
-    const { id, name, subjects, classes } = req.body;
+    const { 
+      id, 
+      name, 
+      email, 
+      phone, 
+      bio, 
+      profilePicture, 
+      subjects, 
+      classes, 
+      permissions 
+    } = req.body;
 
     // Validate input
-    if (isEmpty(id) || isEmpty(name) || isEmpty(subjects) || isEmpty(classes)) {
-      return res.status(400).json({ message: 'id, name, subjects, and classes are required' });
+    if (isEmpty(id) || isEmpty(name) || isEmpty(email) || isEmpty(subjects) || isEmpty(classes)) {
+      return res.status(400).json({ 
+        message: 'id, name, email, subjects, and classes are required' 
+      });
     }
 
     // Check if organisation exists
@@ -23,38 +35,37 @@ router.post('/:organisationId/teachers', async (req, res) => {
       return res.status(404).json({ message: 'Organisation not found' });
     }
 
-    // Check if teacher with given ID already exists in this organisation
-    const existingTeacher = await Teacher.findOne({ id, organisationId });
-    if (existingTeacher) {
-      return res.status(400).json({ message: 'Teacher with this ID already exists in this organisation' });
-    }
-
-    // Create new teacher with default permissions
-    const teacher = new Teacher({
+    // Use the new static method to add teacher to organisation
+    const teacher = await Organisation.addTeacherToOrganisation(organisationId, {
       id,
-      organisationId,
       name,
+      email,
+      phone,
+      bio,
+      profilePicture,
       subjects,
       classes,
-      schedule: new Array(organisation.daysCount * organisation.periodCount).fill({ classroom: null, subject: null }),
-      permissions: {
-        view: true, // Default view permission
-        edit: false, // Edit permission must be explicitly granted
+      permissions: permissions || {
+        view: true,
+        edit: false,
         delete: false,
         manageTeachers: false,
         manageClassrooms: false
       }
     });
 
-    const savedTeacher = await teacher.save();
-
-    // Add teacher to organisation's teachers array
-    organisation.teachers.push(savedTeacher._id);
-    await organisation.save();
-
     res.status(201).json({ 
       message: 'Teacher registered successfully', 
-      teacher: savedTeacher,
+      teacher: {
+        id: teacher.id,
+        name: teacher.name,
+        email: teacher.email,
+        phone: teacher.phone,
+        bio: teacher.bio,
+        profilePicture: teacher.profilePicture,
+        globalPermissions: teacher.globalPermissions,
+        isActive: teacher.isActive
+      },
       organisation: organisation.organisation.organisationId 
     });
   } catch (error) {
@@ -73,12 +84,22 @@ router.get('/:organisationId/teachers', async (req, res) => {
       return res.status(404).json({ message: 'Organisation not found' });
     }
 
-    // Get all teachers for this organisation
-    const teachers = await Teacher.find({ organisationId });
+    // Get all teachers for this organisation using the new method
+    const teachers = await organisation.getAllTeachers();
 
     res.status(200).json({ 
       organisation: organisation.organisation.organisationId,
-      teachers 
+      teachers: teachers.map(teacher => ({
+        id: teacher.id,
+        name: teacher.name,
+        email: teacher.email,
+        phone: teacher.phone,
+        bio: teacher.bio,
+        profilePicture: teacher.profilePicture,
+        globalPermissions: teacher.globalPermissions,
+        isActive: teacher.isActive,
+        organizationData: teacher.getOrganizationMembership(organisationId)
+      }))
     });
   } catch (error) {
     res.status(500).json({ message: 'Error fetching teachers', error: error.message });
@@ -89,6 +110,7 @@ router.get('/:organisationId/teachers', async (req, res) => {
 router.get('/:organisationId/teachers/:teacherId', async (req, res) => {
   try {
     const { organisationId, teacherId } = req.params;
+    const teacherIdNum = parseInt(teacherId);
 
     // Check if organisation exists
     const organisation = await Organisation.findOne({ 'organisation.organisationId': organisationId });
@@ -96,15 +118,27 @@ router.get('/:organisationId/teachers/:teacherId', async (req, res) => {
       return res.status(404).json({ message: 'Organisation not found' });
     }
 
-    // Get specific teacher for this organisation
-    const teacher = await Teacher.findOne({ id: teacherId, organisationId });
+    // Get specific teacher for this organisation using the new method
+    const teacher = await organisation.getTeacherById(teacherIdNum);
     if (!teacher) {
       return res.status(404).json({ message: 'Teacher not found in this organisation' });
     }
 
+    const organizationData = teacher.getOrganizationMembership(organisationId);
+
     res.status(200).json({ 
       organisation: organisation.organisation.organisationId,
-      teacher 
+      teacher: {
+        id: teacher.id,
+        name: teacher.name,
+        email: teacher.email,
+        phone: teacher.phone,
+        bio: teacher.bio,
+        profilePicture: teacher.profilePicture,
+        globalPermissions: teacher.globalPermissions,
+        isActive: teacher.isActive,
+        organizationData: organizationData
+      }
     });
   } catch (error) {
     res.status(500).json({ message: 'Error fetching teacher', error: error.message });
@@ -115,7 +149,18 @@ router.get('/:organisationId/teachers/:teacherId', async (req, res) => {
 router.put('/:organisationId/teachers/:teacherId', async (req, res) => {
   try {
     const { organisationId, teacherId } = req.params;
-    const { name, subjects, classes } = req.body;
+    const teacherIdNum = parseInt(teacherId);
+    const { 
+      name, 
+      email, 
+      phone, 
+      bio, 
+      profilePicture, 
+      subjects, 
+      classes, 
+      permissions,
+      isActive 
+    } = req.body;
 
     // Check if organisation exists
     const organisation = await Organisation.findOne({ 'organisation.organisationId': organisationId });
@@ -123,26 +168,47 @@ router.put('/:organisationId/teachers/:teacherId', async (req, res) => {
       return res.status(404).json({ message: 'Organisation not found' });
     }
 
-    // Update teacher
-    const teacher = await Teacher.findOneAndUpdate(
-      { id: teacherId, organisationId },
-      { 
-        name, 
-        subjects, 
-        classes,
-        updatedAt: Date.now() 
-      },
-      { new: true, runValidators: true }
-    );
-
-    if (!teacher) {
+    // Get teacher
+    const teacher = await Teacher.findByTeacherId(teacherIdNum);
+    if (!teacher || !teacher.belongsToOrganisation(organisationId)) {
       return res.status(404).json({ message: 'Teacher not found in this organisation' });
     }
+
+    // Update global teacher data if provided
+    if (name) teacher.name = name;
+    if (email) teacher.email = email;
+    if (phone !== undefined) teacher.phone = phone;
+    if (bio !== undefined) teacher.bio = bio;
+    if (profilePicture !== undefined) teacher.profilePicture = profilePicture;
+    if (isActive !== undefined) teacher.isActive = isActive;
+
+    // Update organization-specific data if provided
+    if (subjects || classes || permissions) {
+      await teacher.updateOrganizationData(organisationId, {
+        subjects,
+        classes,
+        permissions
+      });
+    }
+
+    await teacher.save();
+
+    const organizationData = teacher.getOrganizationMembership(organisationId);
 
     res.status(200).json({ 
       message: 'Teacher updated successfully',
       organisation: organisation.organisation.organisationId,
-      teacher 
+      teacher: {
+        id: teacher.id,
+        name: teacher.name,
+        email: teacher.email,
+        phone: teacher.phone,
+        bio: teacher.bio,
+        profilePicture: teacher.profilePicture,
+        globalPermissions: teacher.globalPermissions,
+        isActive: teacher.isActive,
+        organizationData: organizationData
+      }
     });
   } catch (error) {
     res.status(400).json({ message: 'Error updating teacher', error: error.message });
@@ -153,6 +219,7 @@ router.put('/:organisationId/teachers/:teacherId', async (req, res) => {
 router.delete('/:organisationId/teachers/:teacherId', async (req, res) => {
   try {
     const { organisationId, teacherId } = req.params;
+    const teacherIdNum = parseInt(teacherId);
 
     // Check if organisation exists
     const organisation = await Organisation.findOne({ 'organisation.organisationId': organisationId });
@@ -160,24 +227,145 @@ router.delete('/:organisationId/teachers/:teacherId', async (req, res) => {
       return res.status(404).json({ message: 'Organisation not found' });
     }
 
-    // Find and delete teacher
-    const teacher = await Teacher.findOneAndDelete({ id: teacherId, organisationId });
+    // Use the new static method to remove teacher from organisation
+    const teacher = await Organisation.removeTeacherFromOrganisation(organisationId, teacherIdNum);
     if (!teacher) {
       return res.status(404).json({ message: 'Teacher not found in this organisation' });
     }
 
-    // Remove teacher from organisation's teachers array
-    organisation.teachers = organisation.teachers.filter(
-      teacherRef => teacherRef.toString() !== teacher._id.toString()
-    );
-    await organisation.save();
-
     res.status(200).json({ 
       message: 'Teacher removed successfully',
-      organisation: organisation.organisation.organisationId 
+      organisation: organisation.organisation.organisationId,
+      teacherId: teacherIdNum
     });
   } catch (error) {
     res.status(500).json({ message: 'Error removing teacher', error: error.message });
+  }
+});
+
+// NEW ENDPOINTS FOR ORGANIZATION-SPECIFIC TEACHER OPERATIONS
+
+// GET: Get teachers by subject in an organisation
+router.get('/:organisationId/teachers/subject/:subject', async (req, res) => {
+  try {
+    const { organisationId, subject } = req.params;
+
+    // Check if organisation exists
+    const organisation = await Organisation.findOne({ 'organisation.organisationId': organisationId });
+    if (!organisation) {
+      return res.status(404).json({ message: 'Organisation not found' });
+    }
+
+    // Get teachers by subject
+    const teachers = await organisation.getTeachersBySubject(subject);
+
+    res.status(200).json({ 
+      organisation: organisation.organisation.organisationId,
+      subject: subject,
+      teachers: teachers.map(teacher => ({
+        id: teacher.id,
+        name: teacher.name,
+        email: teacher.email,
+        phone: teacher.phone,
+        bio: teacher.bio,
+        profilePicture: teacher.profilePicture,
+        globalPermissions: teacher.globalPermissions,
+        isActive: teacher.isActive,
+        organizationData: teacher.getOrganizationMembership(organisationId)
+      }))
+    });
+  } catch (error) {
+    res.status(500).json({ message: 'Error fetching teachers by subject', error: error.message });
+  }
+});
+
+// GET: Get teachers by class in an organisation
+router.get('/:organisationId/teachers/class/:className', async (req, res) => {
+  try {
+    const { organisationId, className } = req.params;
+
+    // Check if organisation exists
+    const organisation = await Organisation.findOne({ 'organisation.organisationId': organisationId });
+    if (!organisation) {
+      return res.status(404).json({ message: 'Organisation not found' });
+    }
+
+    // Get teachers by class
+    const teachers = await organisation.getTeachersByClass(className);
+
+    res.status(200).json({ 
+      organisation: organisation.organisation.organisationId,
+      className: className,
+      teachers: teachers.map(teacher => ({
+        id: teacher.id,
+        name: teacher.name,
+        email: teacher.email,
+        phone: teacher.phone,
+        bio: teacher.bio,
+        profilePicture: teacher.profilePicture,
+        globalPermissions: teacher.globalPermissions,
+        isActive: teacher.isActive,
+        organizationData: teacher.getOrganizationMembership(organisationId)
+      }))
+    });
+  } catch (error) {
+    res.status(500).json({ message: 'Error fetching teachers by class', error: error.message });
+  }
+});
+
+// GET: Get active teachers in an organisation
+router.get('/:organisationId/teachers/active', async (req, res) => {
+  try {
+    const { organisationId } = req.params;
+
+    // Check if organisation exists
+    const organisation = await Organisation.findOne({ 'organisation.organisationId': organisationId });
+    if (!organisation) {
+      return res.status(404).json({ message: 'Organisation not found' });
+    }
+
+    // Get active teachers
+    const teachers = await organisation.getActiveTeachers();
+
+    res.status(200).json({ 
+      organisation: organisation.organisation.organisationId,
+      teachers: teachers.map(teacher => ({
+        id: teacher.id,
+        name: teacher.name,
+        email: teacher.email,
+        phone: teacher.phone,
+        bio: teacher.bio,
+        profilePicture: teacher.profilePicture,
+        globalPermissions: teacher.globalPermissions,
+        isActive: teacher.isActive,
+        organizationData: teacher.getOrganizationMembership(organisationId)
+      }))
+    });
+  } catch (error) {
+    res.status(500).json({ message: 'Error fetching active teachers', error: error.message });
+  }
+});
+
+// GET: Get teacher count in an organisation
+router.get('/:organisationId/teachers/count', async (req, res) => {
+  try {
+    const { organisationId } = req.params;
+
+    // Check if organisation exists
+    const organisation = await Organisation.findOne({ 'organisation.organisationId': organisationId });
+    if (!organisation) {
+      return res.status(404).json({ message: 'Organisation not found' });
+    }
+
+    // Get teacher count
+    const count = await organisation.getTeacherCount();
+
+    res.status(200).json({ 
+      organisation: organisation.organisation.organisationId,
+      teacherCount: count
+    });
+  } catch (error) {
+    res.status(500).json({ message: 'Error fetching teacher count', error: error.message });
   }
 });
 
