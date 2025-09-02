@@ -27,18 +27,18 @@ router.patch('/:organisationId/classroom/:classroomId/grid/:row/:col', async (re
     const rowIndex = parseInt(row);
     const colIndex = parseInt(col);
     const {
-      rows,
-      columns
-    } = organisation.classrooms;
+      periodCount,
+      daysCount
+    } = organisation;
     if (
-      isNaN(rowIndex) || rowIndex < 0 || rowIndex >= rows ||
-      isNaN(colIndex) || colIndex < 0 || colIndex >= columns
+      isNaN(rowIndex) || rowIndex < 0 || rowIndex >= daysCount ||
+      isNaN(colIndex) || colIndex < 0 || colIndex >= periodCount
     ) {
       return res.status(400).json({ message: 'Invalid row or column index' });
     }
 
     // Update the specific grid cell
-    organisation.classrooms.grid[rowIndex * columns + colIndex] = {
+    organisation.classrooms.grid[rowIndex * periodCount + colIndex] = {
       teachers,
       subjects
     };

@@ -25,8 +25,6 @@ const classroomSchema = new mongoose.Schema({
     ref: 'Teacher'
   }],
   assignedSubjects: [String],
-  rows: Number,
-  columns: Number,
   // The grid is an array of gridCellSchema objects
   grid: [gridCellSchema]
 });
@@ -52,6 +50,17 @@ const organisationSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Teacher'
   }],
+  // Organization-level settings for all classrooms
+  periodCount: {
+    type: Number,
+    required: true,
+    default: 8
+  },
+  daysCount: {
+    type: Number,
+    required: true,
+    default: 5
+  },
   classrooms: {
     type: classroomSchema, // Classrooms is a subdocument
     required: true

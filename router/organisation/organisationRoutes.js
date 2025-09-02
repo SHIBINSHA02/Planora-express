@@ -16,10 +16,10 @@ router.get('/list', async (req, res) => {
       id: org.organisation.organisationId,
       name: org.organisation.name,
       admin: org.organisation.admin,
-      periodCount: 8, // Default or from schema
-      totalDays: 5,   // Default or from schema
-      scheduleRows: org.classrooms?.rows || 7,
-      scheduleColumns: org.classrooms?.columns || 8,
+      periodCount: org.periodCount || 8,
+      totalDays: org.daysCount || 5,
+      scheduleRows: org.daysCount || 5,
+      scheduleColumns: org.periodCount || 8,
       createdAt: org.createdAt?.toISOString().split('T')[0] || new Date().toISOString().split('T')[0]
     }));
 
@@ -45,10 +45,10 @@ router.get('/:organisationId', async (req, res) => {
       id: organisation.organisation.organisationId,
       name: organisation.organisation.name,
       admin: organisation.organisation.admin,
-      periodCount: 8, // Default or from schema
-      totalDays: 5,   // Default or from schema
-      scheduleRows: organisation.classrooms?.rows || 7,
-      scheduleColumns: organisation.classrooms?.columns || 8,
+      periodCount: organisation.periodCount || 8,
+      totalDays: organisation.daysCount || 5,
+      scheduleRows: organisation.daysCount || 5,
+      scheduleColumns: organisation.periodCount || 8,
       createdAt: organisation.createdAt?.toISOString().split('T')[0] || new Date().toISOString().split('T')[0]
     };
 
@@ -61,7 +61,7 @@ router.get('/:organisationId', async (req, res) => {
 // POST: Create a new organization (for the create endpoint)
 router.post('/create', async (req, res) => {
   try {
-    const { name, admin, periodCount, totalDays, scheduleRows, scheduleColumns } = req.body;
+    const { name, admin, periodCount, totalDays } = req.body;
 
     // Validate input
     if (!name || !admin) {
@@ -78,14 +78,14 @@ router.post('/create', async (req, res) => {
         name,
         admin
       },
+      periodCount: periodCount || 8,
+      daysCount: totalDays || 5,
       classrooms: {
         classroomId: 'default-classroom',
         assignedTeacher: null,
         assignedTeachers: [],
         assignedSubjects: [],
-        rows: scheduleRows || 7,
-        columns: scheduleColumns || 8,
-        grid: Array((scheduleRows || 7) * (scheduleColumns || 8)).fill().map(() => ({
+        grid: Array((totalDays || 5) * (periodCount || 8)).fill().map(() => ({
           teachers: [],
           subjects: []
         }))
@@ -101,8 +101,8 @@ router.post('/create', async (req, res) => {
       admin,
       periodCount: periodCount || 8,
       totalDays: totalDays || 5,
-      scheduleRows: scheduleRows || 7,
-      scheduleColumns: scheduleColumns || 8,
+      scheduleRows: totalDays || 5,
+      scheduleColumns: periodCount || 8,
       createdAt: organisation.createdAt.toISOString().split('T')[0]
     };
 
@@ -126,8 +126,8 @@ router.put('/:organisationId', async (req, res) => {
       { 
         'organisation.name': updateData.name,
         'organisation.admin': updateData.admin,
-        'classrooms.rows': updateData.scheduleRows,
-        'classrooms.columns': updateData.scheduleColumns,
+        periodCount: updateData.periodCount,
+        daysCount: updateData.totalDays,
         updatedAt: new Date()
       },
       { new: true, runValidators: true }
@@ -141,10 +141,10 @@ router.put('/:organisationId', async (req, res) => {
       id: organisation.organisation.organisationId,
       name: organisation.organisation.name,
       admin: organisation.organisation.admin,
-      periodCount: updateData.periodCount || 8,
-      totalDays: updateData.totalDays || 5,
-      scheduleRows: organisation.classrooms.rows,
-      scheduleColumns: organisation.classrooms.columns,
+      periodCount: organisation.periodCount || 8,
+      totalDays: organisation.daysCount || 5,
+      scheduleRows: organisation.daysCount || 5,
+      scheduleColumns: organisation.periodCount || 8,
       createdAt: organisation.createdAt.toISOString().split('T')[0]
     };
 

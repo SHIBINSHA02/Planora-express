@@ -33,13 +33,13 @@ async function testOTPSystem() {
         name: 'Test School',
         admin: 'admin@test.com'
       },
+      periodCount: 8,
+      daysCount: 7,
       classrooms: {
         classroomId: 'test-classroom',
         assignedTeacher: null,
         assignedTeachers: [],
         assignedSubjects: [],
-        rows: 7,
-        columns: 8,
         grid: Array(56).fill().map(() => ({
           teachers: [],
           subjects: []

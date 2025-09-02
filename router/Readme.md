@@ -28,7 +28,7 @@ Left unchanged since it already accepts organisationId and classroomId in the re
 Validation and Logic:
 
 Ensured all operations (GET, PATCH, PUT) respect the nested schema structure by accessing fields like organisation.classrooms.
-Maintained validation for grid indices and input fields, ensuring compatibility with the schema's rows and columns fields.
+Maintained validation for grid indices and input fields, ensuring compatibility with the schema's periodCount and daysCount fields at the organization level.
 Kept the populate calls to fetch related teacher data for assignedTeacher, assignedTeachers, and grid.teachers.
 
 

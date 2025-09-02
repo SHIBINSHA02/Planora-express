@@ -23,15 +23,16 @@ router.post('/seeds', async (req, res) => {
     const sampleOrganisations = [{
       organisation: {
         organisationId: 'ORG001',
+        name: 'Sample School 1',
         admin: 'admin1@example.com'
       },
+      periodCount: 8,
+      daysCount: 5,
       classrooms: {
         classroomId: '10A',
         assignedTeacher: john._id, // CORRECT: Use the Mongoose-generated ObjectId
         assignedTeachers: [john._id, emma._id], // CORRECT: Use ObjectIds for the array
         assignedSubjects: ['Mathematics', 'English'],
-        rows: 2,
-        columns: 2,
         grid: [{
           teachers: [john._id],
           subjects: ['Mathematics']
@@ -49,15 +50,16 @@ router.post('/seeds', async (req, res) => {
     }, {
       organisation: {
         organisationId: 'ORG002',
+        name: 'Sample School 2',
         admin: 'admin2@example.com'
       },
+      periodCount: 6,
+      daysCount: 5,
       classrooms: {
         classroomId: '11A',
         assignedTeacher: michael._id,
         assignedTeachers: [michael._id, john._id],
         assignedSubjects: ['Chemistry', 'Mathematics'],
-        rows: 1,
-        columns: 2,
         grid: [{
           teachers: [michael._id],
           subjects: ['Chemistry']
