@@ -19,4 +19,7 @@ router.get('/users/:userId/teacher-organizations', TeacherLinkController.getTeac
 // POST: Create teacher profile for user
 router.post('/users/:userId/create-teacher', TeacherLinkController.createTeacherProfile);
 
+// POST: Upsert user and create/link teacher (unified registration)
+router.post('/users/create-or-link-teacher', TeacherLinkController.upsertUserAndTeacher);
+
 module.exports = router;
