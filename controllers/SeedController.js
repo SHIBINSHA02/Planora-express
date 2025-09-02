@@ -167,9 +167,9 @@ exports.seed = async (req, res) => {
     if (organisations.length) await Organisation.insertMany(organisations);
     if (teachers.length) await Teacher.insertMany(teachers);
 
-    // Reload from DB to get persistent refs
-    const allOrganisations = await Organisation.find({});
+    // Get all teachers (both existing and newly created)
     const allTeachers = await Teacher.find({});
+    const allOrganisations = await Organisation.find({});
 
     // Link memberships and classroom assignments
     await linkTeachersToOrganisations(allTeachers, allOrganisations);
@@ -178,8 +178,10 @@ exports.seed = async (req, res) => {
     for (let i = 0; i < usersToCreate; i++) users.push(buildUser(i, allOrganisations));
     if (users.length) await Auth.insertMany(users);
 
-    // Link users to teachers (first 10 users become teachers, last 5 remain regular users)
+    // Get all users (both existing and newly created)
     const allUsers = await Auth.find({});
+    
+    // Link users to teachers (first 10 users become teachers, last 5 remain regular users)
     await linkUsersToTeachers(allUsers, allTeachers);
 
     const results = {
