@@ -17,6 +17,7 @@ async function demonstrateConnection() {
       daysCount: 5,
       classrooms: {
         classroomId: '10A',
+        classroomName: 'Grade 10A',
         assignedTeacher: null,
         assignedTeachers: [],
         assignedSubjects: [],

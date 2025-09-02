@@ -35,9 +35,9 @@ Manages teachers within organizations:
 
 ### 3. classroomRoutes.js
 Handles classroom operations:
-- `POST /` - Create new classroom
+- `POST /` - Create new classroom (requires classroomId and classroomName)
 - `GET /:organisationId/classroom/:classroomId` - Get classroom
-- `PUT /:organisationId/classroom/:classroomId` - Update classroom
+- `PUT /:organisationId/classroom/:classroomId` - Update classroom (includes classroomName)
 
 ### 4. gridRoutes.js
 Manages schedule grid operations:
@@ -117,6 +117,7 @@ POST /api/organisation/
   "name": "Classroom A",
   "admin": "admin@example.com",
   "classroomId": "class1",
+  "classroomName": "Grade 10 Mathematics",
   "assignedTeacher": 1,
   "assignedTeachers": [1, 2],
   "assignedSubjects": ["Math", "Science"],

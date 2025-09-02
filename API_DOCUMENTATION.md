@@ -285,6 +285,82 @@ Get teacher count in an organization
 
 ---
 
+## Classroom Endpoints (`/organisations/:organisationId/classroom`)
+
+### Classroom Management
+
+#### POST `/organisations/`
+Create a new classroom within an organization
+
+**Request Body:**
+```json
+{
+  "organisationId": "ORG001",
+  "name": "ABC School",
+  "admin": "admin@abcschool.com",
+  "classroomId": "CLASS001",
+  "classroomName": "Grade 10 Mathematics",
+  "assignedTeacher": "teacher_object_id",
+  "assignedTeachers": ["teacher_object_id_1", "teacher_object_id_2"],
+  "assignedSubjects": ["Mathematics", "Physics"],
+  "grid": [],
+  "periodCount": 8,
+  "daysCount": 5
+}
+```
+
+#### GET `/organisations/:organisationId/classroom/:classroomId`
+Get classroom details
+
+**Response:**
+```json
+{
+  "classroomId": "CLASS001",
+  "classroomName": "Grade 10 Mathematics",
+  "assignedTeacher": {
+    "_id": "teacher_object_id",
+    "name": "Dr. John Smith",
+    "email": "john.smith@example.com"
+  },
+  "assignedTeachers": [
+    {
+      "_id": "teacher_object_id_1",
+      "name": "Dr. Jane Doe",
+      "email": "jane.doe@example.com"
+    }
+  ],
+  "assignedSubjects": ["Mathematics", "Physics"],
+  "grid": []
+}
+```
+
+#### PUT `/organisations/:organisationId/classroom/:classroomId`
+Update classroom details
+
+**Request Body:**
+```json
+{
+  "classroomName": "Advanced Mathematics",
+  "assignedTeacher": "teacher_object_id",
+  "assignedTeachers": ["teacher_object_id_1", "teacher_object_id_2"],
+  "assignedSubjects": ["Advanced Mathematics", "Calculus"],
+  "grid": []
+}
+```
+
+#### PATCH `/organisations/:organisationId/classroom/:classroomId/grid/:row/:col`
+Update a specific grid cell in the classroom schedule
+
+**Request Body:**
+```json
+{
+  "teachers": ["teacher_object_id_1", "teacher_object_id_2"],
+  "subjects": ["Mathematics", "Physics"]
+}
+```
+
+---
+
 ## Authentication Endpoints (`/auth`)
 
 ### User Management
@@ -469,6 +545,7 @@ const profile = await teacherProfile.json();
 
 ### Organization Schema
 - Updated methods to work with new teacher structure
+- Added `classroomName` field to classroom schema (required field alongside `classroomId`)
 - Maintains backward compatibility
 
 ---

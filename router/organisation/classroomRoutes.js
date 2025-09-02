@@ -9,10 +9,10 @@ const { checkTeachersExistInOrganisation } = require('../../controllers/Teacher/
 // POST: Create a new classroom within an organisation
 router.post('/', async (req, res) => {
   try {
-    const { organisationId, name, admin, classroomId, assignedTeacher, assignedTeachers, assignedSubjects, grid, periodCount, daysCount } = req.body;
+    const { organisationId, name, admin, classroomId, classroomName, assignedTeacher, assignedTeachers, assignedSubjects, grid, periodCount, daysCount } = req.body;
 
     // Validate input
-    if (isEmpty(organisationId) || isEmpty(name) || isEmpty(admin) || isEmpty(classroomId) || isEmpty(assignedTeacher) || isEmpty(assignedTeachers) || isEmpty(assignedSubjects) || isEmpty(grid)) {
+    if (isEmpty(organisationId) || isEmpty(name) || isEmpty(admin) || isEmpty(classroomId) || isEmpty(classroomName) || isEmpty(assignedTeacher) || isEmpty(assignedTeachers) || isEmpty(assignedSubjects) || isEmpty(grid)) {
       return res.status(400).json({ message: 'All fields are required' });
     }
 
@@ -38,6 +38,7 @@ router.post('/', async (req, res) => {
       daysCount: daysCount || 5,
       classrooms: {
         classroomId,
+        classroomName,
         assignedTeacher,
         assignedTeachers,
         assignedSubjects,
@@ -78,11 +79,11 @@ router.get('/:organisationId/classroom/:classroomId', async (req, res) => {
 router.put('/:organisationId/classroom/:classroomId', async (req, res) => {
   try {
     const { organisationId, classroomId } = req.params;
-    const { assignedTeacher, assignedTeachers, assignedSubjects, grid } = req.body;
+    const { classroomName, assignedTeacher, assignedTeachers, assignedSubjects, grid } = req.body;
 
     // Validate input
-    if (isEmpty(assignedTeacher) || isEmpty(assignedTeachers) || isEmpty(assignedSubjects) || isEmpty(grid)) {
-      return res.status(400).json({ message: 'All fields (assignedTeacher, assignedTeachers, assignedSubjects, grid) are required' });
+    if (isEmpty(classroomName) || isEmpty(assignedTeacher) || isEmpty(assignedTeachers) || isEmpty(assignedSubjects) || isEmpty(grid)) {
+      return res.status(400).json({ message: 'All fields (classroomName, assignedTeacher, assignedTeachers, assignedSubjects, grid) are required' });
     }
 
     // Validate teacher existence and IDs within the organisation
@@ -102,6 +103,7 @@ router.put('/:organisationId/classroom/:classroomId', async (req, res) => {
         'classrooms.classroomId': classroomId
       }, {
         $set: {
+          'classrooms.classroomName': classroomName,
           'classrooms.assignedTeacher': assignedTeacher,
           'classrooms.assignedTeachers': assignedTeachers,
           'classrooms.assignedSubjects': assignedSubjects,

@@ -119,6 +119,7 @@ POST /api/organisation/
   "name": "Classroom A",
   "admin": "admin@example.com",
   "classroomId": "class1",
+  "classroomName": "Grade 10 Mathematics",
   "assignedTeacher": 1,
   "assignedTeachers": [1, 2],
   "assignedSubjects": ["Math", "Science"],

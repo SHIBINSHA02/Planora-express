@@ -16,6 +16,11 @@ const classroomSchema = new mongoose.Schema({
     type: String,
     required: true
   },
+  classroomName: {
+    type: String,
+    required: true,
+    trim: true
+  },
   assignedTeacher: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Teacher'

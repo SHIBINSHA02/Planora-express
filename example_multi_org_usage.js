@@ -28,6 +28,7 @@ async function demonstrateMultiOrgTeacherSystem() {
       daysCount: 5,
       classrooms: {
         classroomId: 'CLASS001',
+        classroomName: 'Mathematics Lab',
         assignedTeacher: null,
         assignedTeachers: [],
         assignedSubjects: ['Math', 'Science'],
@@ -46,6 +47,7 @@ async function demonstrateMultiOrgTeacherSystem() {
       daysCount: 6,
       classrooms: {
         classroomId: 'CLASS002',
+        classroomName: 'Science Laboratory',
         assignedTeacher: null,
         assignedTeachers: [],
         assignedSubjects: ['Physics', 'Chemistry', 'Biology'],
