@@ -4,6 +4,7 @@ const cors = require('cors');
 const connectDB = require('./dbms/db');
 const router = require('./router');
 const organisationRouter = require('./router/organisation');
+const SeedController = require('./controllers/SeedController');
 const app = express();
 const port = process.env.PORT || 3000;
 const morgan = require('morgan')
@@ -16,6 +17,9 @@ app.use('/api', router);
 
 // Mount the organisation-specific router
 app.use('/api/organisation', organisationRouter);
+
+// Explicit seed endpoint to generate minimum 10 docs per model
+app.get('/api/seed', SeedController.seed);
 
 // Basic route for health check
 app.get('/api/health', (req, res) => {
