@@ -1,3 +1,4 @@
+<!-- API_DOCUMENTATION.md -->
 # Multi-Organization Teacher System API Documentation
 
 ## Overview
