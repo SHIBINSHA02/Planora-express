@@ -2,11 +2,8 @@
 const express = require('express');
 const cors = require('cors');
 const connectDB = require('./dbms/db');
-const teacherRouter = require('./router/Teacher'); 
-const seedTeachers = require('./router/SeedTeacher'); 
-const seedOrganisation =require('./router/seedOrganisation');
-const Organisation = require('./router/organisation');
-const authRouter = require('./router/Auth');
+const router = require('./router');
+const organisationRouter = require('./router/organisation');
 const app = express();
 const port = process.env.PORT || 3000;
 const morgan = require('morgan')
@@ -14,16 +11,11 @@ const morgan = require('morgan')
 app.use(express.json());
 app.use(cors());
 app.use(morgan('tiny'));
-// Mount the teacher router
-app.use('/api/teachers', teacherRouter);
+// Mount the main router (includes auth, users, organizations, teachers)
+app.use('/api', router);
 
-// Mount the seed router
-app.use('/api/seed', seedTeachers);
-app.use('/api/organisation',Organisation)
-app.use('/api/seeds',seedOrganisation)
-
-// Mount the auth router
-app.use('/api/auth', authRouter);
+// Mount the organisation-specific router
+app.use('/api/organisation', organisationRouter);
 
 // Basic route for health check
 app.get('/api/health', (req, res) => {
