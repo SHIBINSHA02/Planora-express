@@ -16,6 +16,8 @@ const pickRandom = (arr, count = 1) => {
 
 const SUBJECT_POOL = ['Math', 'Science', 'History', 'English', 'Art', 'Music', 'PE', 'Geography', 'CS', 'Economics'];
 const CLASS_POOL = ['Class A', 'Class B', 'Class C', 'Class D', 'Class E'];
+const FIRST_NAMES = ['Alice', 'Bob', 'Carol', 'David', 'Emma', 'Frank', 'Grace', 'Henry', 'Ivy', 'Jack', 'Kate', 'Liam', 'Maya', 'Noah', 'Olivia'];
+const LAST_NAMES = ['Anderson', 'Brown', 'Clark', 'Davis', 'Evans', 'Fisher', 'Garcia', 'Harris', 'Johnson', 'King', 'Lee', 'Miller', 'Nelson', 'O\'Connor', 'Parker'];
 
 async function clearCollections() {
   await Promise.all([
@@ -49,32 +51,35 @@ function buildOrganisation(index) {
 
 function buildTeacher(index) {
   const id = 1000 + index;
-  const name = `Teacher ${index + 1}`;
-  const email = `teacher${index + 1}@example.com`;
+  const firstName = FIRST_NAMES[index];
+  const lastName = LAST_NAMES[index];
+  const name = `${firstName} ${lastName}`;
+  const email = `${firstName.toLowerCase()}.${lastName.toLowerCase()}@example.com`;
   return new Teacher({
     id,
     name,
     email,
     phone: `+1-555-01${(index + 1).toString().padStart(2, '0')}`,
-    bio: `Bio for ${name}`,
+    bio: `Experienced educator specializing in ${pickRandom(SUBJECT_POOL, 1)[0]}`,
     profilePicture: null,
-    globalPermissions: { view: true, edit: index % 3 === 0 }
+    globalPermissions: { view: true, edit: index % 3 === 0 },
+    linkedUserId: null // Will be set when linking to user
   });
 }
 
 function buildUser(index, organisations) {
-  const username = `user${index + 1}`;
-  const email = `user${index + 1}@example.com`;
-  const nameFirst = `First${index + 1}`;
-  const nameLast = `Last${index + 1}`;
+  const firstName = FIRST_NAMES[index];
+  const lastName = LAST_NAMES[index];
+  const username = `${firstName.toLowerCase()}${lastName.toLowerCase()}`;
+  const email = `${firstName.toLowerCase()}.${lastName.toLowerCase()}@example.com`;
   const accessOrgs = pickRandom(organisations, 2);
   return new Auth({
     userId: `user-${Date.now()}-${index}-${Math.random().toString(36).substr(2, 5)}`,
     username,
     email,
     password: 'password123',
-    firstName: nameFirst,
-    lastName: nameLast,
+    firstName,
+    lastName,
     organizationAccess: accessOrgs.map(org => ({
       organisationId: org.organisation.organisationId,
       organisationName: org.organisation.name,
@@ -113,6 +118,27 @@ async function linkTeachersToOrganisations(teachers, organisations) {
   }
 }
 
+async function linkUsersToTeachers(users, teachers) {
+  // Link first 10 users to first 10 teachers
+  const usersToLink = users.slice(0, 10);
+  const teachersToLink = teachers.slice(0, 10);
+  
+  for (let i = 0; i < usersToLink.length; i++) {
+    const user = usersToLink[i];
+    const teacher = teachersToLink[i];
+    
+    // Link teacher to user
+    teacher.linkedUserId = user.userId;
+    await teacher.save();
+    
+    console.log(`Linked user ${user.username} (${user.userId}) to teacher ${teacher.name} (${teacher.id})`);
+  }
+  
+  // Ensure remaining 5 users are not teachers
+  const remainingUsers = users.slice(10);
+  console.log(`Created ${remainingUsers.length} non-teacher users: ${remainingUsers.map(u => u.username).join(', ')}`);
+}
+
 exports.seed = async (req, res) => {
   try {
     const { force } = req.query;
@@ -130,14 +156,14 @@ exports.seed = async (req, res) => {
     const teachers = [];
     const users = [];
 
-    // Ensure at least 10 per model
+    // Create exactly 15 users, 10 teachers, and 10 organizations
     const orgToCreate = Math.max(10 - orgCount, 0);
     for (let i = 0; i < orgToCreate; i++) organisations.push(buildOrganisation(i));
 
     const teacherToCreate = Math.max(10 - teacherCount, 0);
     for (let i = 0; i < teacherToCreate; i++) teachers.push(buildTeacher(i));
 
-    // Save orgs and teachers first (relationships depend on them)
+    // Save orgs and teachers first
     if (organisations.length) await Organisation.insertMany(organisations);
     if (teachers.length) await Teacher.insertMany(teachers);
 
@@ -148,14 +174,20 @@ exports.seed = async (req, res) => {
     // Link memberships and classroom assignments
     await linkTeachersToOrganisations(allTeachers, allOrganisations);
 
-    const usersToCreate = Math.max(10 - authCount, 0);
+    const usersToCreate = Math.max(15 - authCount, 0);
     for (let i = 0; i < usersToCreate; i++) users.push(buildUser(i, allOrganisations));
     if (users.length) await Auth.insertMany(users);
+
+    // Link users to teachers (first 10 users become teachers, last 5 remain regular users)
+    const allUsers = await Auth.find({});
+    await linkUsersToTeachers(allUsers, allTeachers);
 
     const results = {
       organisations: await Organisation.countDocuments(),
       teachers: await Teacher.countDocuments(),
-      users: await Auth.countDocuments()
+      users: await Auth.countDocuments(),
+      linkedTeachers: 10,
+      regularUsers: 5
     };
 
     res.status(200).json({ message: 'Seeding completed', forceCleared: force === 'true', counts: results });
