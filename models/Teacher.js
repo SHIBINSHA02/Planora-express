@@ -36,18 +36,7 @@ const teacherSchema = new mongoose.Schema({
       message: 'At least one class is required',
     },
   },
-  scheduleRows: {
-    type: Number,
-    required: true,
-    min: 1,
-    default: 7 // Default 7 days
-  },
-  scheduleColumns: {
-    type: Number,
-    required: true,
-    min: 1,
-    default: 8 // Default 8 periods per day
-  },
+
   schedule: [{
     classroom: {
       type: String,
@@ -99,14 +88,16 @@ const teacherSchema = new mongoose.Schema({
 });
 
 // Method to get schedule slot by row and column indices
-teacherSchema.methods.getScheduleSlot = function(row, col) {
-  const index = row * this.scheduleColumns + col;
+// Note: periodCount should be passed from organization
+teacherSchema.methods.getScheduleSlot = function(row, col, periodCount) {
+  const index = row * periodCount + col;
   return this.schedule[index];
 };
 
 // Method to set schedule slot by row and column indices
-teacherSchema.methods.setScheduleSlot = function(row, col, slotData) {
-  const index = row * this.scheduleColumns + col;
+// Note: periodCount should be passed from organization
+teacherSchema.methods.setScheduleSlot = function(row, col, slotData, periodCount) {
+  const index = row * periodCount + col;
   this.schedule[index] = slotData;
 };
 
@@ -157,14 +148,8 @@ teacherSchema.methods.hasEditAccess = function() {
   return this.isActive && this.permissions.edit;
 };
 
-// Validate schedule size matches scheduleRows * scheduleColumns
-teacherSchema.pre('save', function(next) {
-  const expectedSize = this.scheduleRows * this.scheduleColumns;
-  if (this.schedule.length !== expectedSize) {
-    return next(new Error(`Schedule size ${this.schedule.length} doesn't match scheduleRows×scheduleColumns ${expectedSize}`));
-  }
-  next();
-});
+// Note: Schedule size validation should be done at the application level
+// using organization's periodCount and daysCount
 
 // Indexes for efficient querying
 teacherSchema.index({ organisationId: 1, id: 1 }, { unique: true }); // Unique teacher ID within organization

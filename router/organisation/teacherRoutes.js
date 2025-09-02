@@ -10,7 +10,7 @@ const Teacher = require('../../models/Teacher');
 router.post('/:organisationId/teachers', async (req, res) => {
   try {
     const { organisationId } = req.params;
-    const { id, name, subjects, classes, scheduleRows, scheduleColumns } = req.body;
+    const { id, name, subjects, classes } = req.body;
 
     // Validate input
     if (isEmpty(id) || isEmpty(name) || isEmpty(subjects) || isEmpty(classes)) {
@@ -36,9 +36,7 @@ router.post('/:organisationId/teachers', async (req, res) => {
       name,
       subjects,
       classes,
-      scheduleRows: scheduleRows || 7,
-      scheduleColumns: scheduleColumns || 8,
-      schedule: new Array((scheduleRows || 7) * (scheduleColumns || 8)).fill({ classroom: null, subject: null }),
+      schedule: new Array(organisation.daysCount * organisation.periodCount).fill({ classroom: null, subject: null }),
       permissions: {
         view: true, // Default view permission
         edit: false, // Edit permission must be explicitly granted
@@ -117,7 +115,7 @@ router.get('/:organisationId/teachers/:teacherId', async (req, res) => {
 router.put('/:organisationId/teachers/:teacherId', async (req, res) => {
   try {
     const { organisationId, teacherId } = req.params;
-    const { name, subjects, classes, scheduleRows, scheduleColumns } = req.body;
+    const { name, subjects, classes } = req.body;
 
     // Check if organisation exists
     const organisation = await Organisation.findOne({ 'organisation.organisationId': organisationId });
@@ -131,9 +129,7 @@ router.put('/:organisationId/teachers/:teacherId', async (req, res) => {
       { 
         name, 
         subjects, 
-        classes, 
-        scheduleRows, 
-        scheduleColumns,
+        classes,
         updatedAt: Date.now() 
       },
       { new: true, runValidators: true }

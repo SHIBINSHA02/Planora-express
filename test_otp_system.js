@@ -62,8 +62,6 @@ async function testOTPSystem() {
       name: 'Test Teacher',
       subjects: ['Math', 'Science'],
       classes: ['Grade 1', 'Grade 2'],
-      scheduleRows: 7,
-      scheduleColumns: 8,
       schedule: Array(56).fill({ classroom: null, subject: null }),
       permissions: {
         view: true,
@@ -148,8 +146,6 @@ async function testOTPSystem() {
       name: 'No Edit Teacher',
       subjects: ['English'],
       classes: ['Grade 3'],
-      scheduleRows: 7,
-      scheduleColumns: 8,
       schedule: Array(56).fill({ classroom: null, subject: null }),
       permissions: {
         view: true,

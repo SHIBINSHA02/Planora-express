@@ -60,7 +60,7 @@ router.get('/:id', async (req, res) => {
 // CREATE a new teacher (now requires organisationId in body)
 router.post('/', async (req, res) => {
   try {
-    const { id, organisationId, name, subjects, classes, scheduleRows, scheduleColumns } = req.body;
+    const { id, organisationId, name, subjects, classes } = req.body;
     
     if (!organisationId) {
       return res.status(400).json({ message: 'organisationId is required' });
@@ -84,9 +84,7 @@ router.post('/', async (req, res) => {
       name,
       subjects,
       classes,
-      scheduleRows: scheduleRows || 7,
-      scheduleColumns: scheduleColumns || 8,
-      schedule: new Array((scheduleRows || 7) * (scheduleColumns || 8)).fill({ classroom: null, subject: null })
+      schedule: new Array(organisation.daysCount * organisation.periodCount).fill({ classroom: null, subject: null })
     });
 
     const savedTeacher = await teacher.save();
@@ -108,7 +106,7 @@ router.post('/', async (req, res) => {
 // UPDATE teacher by ID (now requires organisationId in body)
 router.put('/:id', async (req, res) => {
   try {
-    const { organisationId, name, subjects, classes, scheduleRows, scheduleColumns } = req.body;
+    const { organisationId, name, subjects, classes } = req.body;
     
     if (!organisationId) {
       return res.status(400).json({ message: 'organisationId is required' });
@@ -125,9 +123,7 @@ router.put('/:id', async (req, res) => {
       { 
         name, 
         subjects, 
-        classes, 
-        scheduleRows, 
-        scheduleColumns,
+        classes,
         updatedAt: Date.now() 
       },
       { new: true, runValidators: true }
