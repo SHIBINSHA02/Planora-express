@@ -17,7 +17,7 @@ const pickRandom = (arr, count = 1) => {
 const SUBJECT_POOL = ['Math', 'Science', 'History', 'English', 'Art', 'Music', 'PE', 'Geography', 'CS', 'Economics'];
 const CLASS_POOL = ['Class A', 'Class B', 'Class C', 'Class D', 'Class E'];
 const FIRST_NAMES = ['Alice', 'Bob', 'Carol', 'David', 'Emma', 'Frank', 'Grace', 'Henry', 'Ivy', 'Jack', 'Kate', 'Liam', 'Maya', 'Noah', 'Olivia'];
-const LAST_NAMES = ['Anderson', 'Brown', 'Clark', 'Davis', 'Evans', 'Fisher', 'Garcia', 'Harris', 'Johnson', 'King', 'Lee', 'Miller', 'Nelson', 'O\'Connor', 'Parker'];
+const LAST_NAMES = ['Anderson', 'Brown', 'Clark', 'Davis', 'Evans', 'Fisher', 'Garcia', 'Harris', 'Johnson', 'King', 'Lee', 'Miller', 'Nelson', 'OConnor', 'Parker'];
 
 async function clearCollections() {
   await Promise.all([
@@ -54,7 +54,10 @@ function buildTeacher(index) {
   const firstName = FIRST_NAMES[index];
   const lastName = LAST_NAMES[index];
   const name = `${firstName} ${lastName}`;
-  const email = `${firstName.toLowerCase()}.${lastName.toLowerCase()}@example.com`;
+  // Clean email by removing special characters and ensuring valid format
+  const cleanFirstName = firstName.toLowerCase().replace(/[^a-z]/g, '');
+  const cleanLastName = lastName.toLowerCase().replace(/[^a-z]/g, '');
+  const email = `${cleanFirstName}.${cleanLastName}@example.com`;
   return new Teacher({
     id,
     name,
@@ -71,7 +74,10 @@ function buildUser(index, organisations) {
   const firstName = FIRST_NAMES[index];
   const lastName = LAST_NAMES[index];
   const username = `${firstName.toLowerCase()}${lastName.toLowerCase()}`;
-  const email = `${firstName.toLowerCase()}.${lastName.toLowerCase()}@example.com`;
+  // Clean email by removing special characters and ensuring valid format
+  const cleanFirstName = firstName.toLowerCase().replace(/[^a-z]/g, '');
+  const cleanLastName = lastName.toLowerCase().replace(/[^a-z]/g, '');
+  const email = `${cleanFirstName}.${cleanLastName}@example.com`;
   const accessOrgs = pickRandom(organisations, 2);
   return new Auth({
     userId: `user-${Date.now()}-${index}-${Math.random().toString(36).substr(2, 5)}`,
@@ -119,24 +125,37 @@ async function linkTeachersToOrganisations(teachers, organisations) {
 }
 
 async function linkUsersToTeachers(users, teachers) {
+  console.log(`Starting to link ${users.length} users to ${teachers.length} teachers`);
+  
   // Link first 10 users to first 10 teachers
   const usersToLink = users.slice(0, 10);
   const teachersToLink = teachers.slice(0, 10);
+  
+  console.log(`Will link ${usersToLink.length} users to ${teachersToLink.length} teachers`);
   
   for (let i = 0; i < usersToLink.length; i++) {
     const user = usersToLink[i];
     const teacher = teachersToLink[i];
     
+    console.log(`Linking user ${user.username} (${user.userId}) to teacher ${teacher.name} (${teacher.id})`);
+    
     // Link teacher to user
     teacher.linkedUserId = user.userId;
     await teacher.save();
     
-    console.log(`Linked user ${user.username} (${user.userId}) to teacher ${teacher.name} (${teacher.id})`);
+    console.log(`Successfully linked user ${user.username} to teacher ${teacher.name}`);
   }
   
   // Ensure remaining 5 users are not teachers
   const remainingUsers = users.slice(10);
   console.log(`Created ${remainingUsers.length} non-teacher users: ${remainingUsers.map(u => u.username).join(', ')}`);
+  
+  // Verify linking worked
+  const linkedTeachers = await Teacher.find({ linkedUserId: { $exists: true, $ne: null } });
+  console.log(`Total teachers with linkedUserId: ${linkedTeachers.length}`);
+  linkedTeachers.forEach(t => {
+    console.log(`Teacher ${t.name} (${t.id}) linked to user: ${t.linkedUserId}`);
+  });
 }
 
 exports.seed = async (req, res) => {
@@ -171,6 +190,8 @@ exports.seed = async (req, res) => {
     const allTeachers = await Teacher.find({});
     const allOrganisations = await Organisation.find({});
 
+    console.log(`Created ${allTeachers.length} teachers and ${allOrganisations.length} organisations`);
+
     // Link memberships and classroom assignments
     await linkTeachersToOrganisations(allTeachers, allOrganisations);
 
@@ -180,6 +201,8 @@ exports.seed = async (req, res) => {
 
     // Get all users (both existing and newly created)
     const allUsers = await Auth.find({});
+    
+    console.log(`Created ${allUsers.length} users total`);
     
     // Link users to teachers (first 10 users become teachers, last 5 remain regular users)
     await linkUsersToTeachers(allUsers, allTeachers);
