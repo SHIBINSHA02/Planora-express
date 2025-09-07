@@ -33,11 +33,19 @@ The organization router has been split into modular components for better mainta
 - Changed `GET /:classroomId` to `GET /organisation/:organisationId/classroom/:classroomId`
 - Changed `PATCH /:classroomId/grid/:row/:col` to `PATCH /organisation/:organisationId/classroom/:classroomId/grid/:row/:col`
 - Changed `PUT /:classroomId` to `PUT /organisation/:organisationId/classroom/:classroomId`
+- Added `GET /organisation/:organisationId/teachers/:teacherId/schedule` for computed teacher schedules
 - These changes ensure routes reflect both `organisationId` and `classroomId` as required
 
+### Schema Updates
+- **Classrooms**: Changed from single object to array structure to support multiple classrooms per organisation
+- **Grid Structure**: Updated from 2D array to flattened array (5 days × 6 periods = 30 cells total)
+- **Teacher Schedules**: Removed stored schedule field - schedules are now computed from classroom grids
+- **Grid Cells**: Each cell now contains `teachers` array and `subjects` array
+
 ### Query Updates
-- Updated queries in GET, PATCH, and PUT routes to use both `organisation.organisationId` and `classrooms.classroomId` in the `findOne` and `findOneAndUpdate` methods
-- Example: `Organisation.findOne({ 'organisation.organisationId': organisationId, 'classrooms.classroomId': classroomId })`
+- Updated queries to work with classrooms array structure
+- Grid operations now use flattened indexing (row × periodCount + col)
+- Teacher schedule computation aggregates from all classroom grids
 
 ### Error Messages
 - Updated error messages to reflect that both organisation and classroom need to be found (e.g., "Classroom or Organisation not found")
@@ -117,16 +125,11 @@ PUT /api/organisation/org123/teachers/1/permissions
 POST /api/organisation/
 {
   "organisationId": "org123",
-  "name": "Classroom A",
-  "admin": "admin@example.com",
   "classroomId": "class1",
   "classroomName": "Grade 10 Mathematics",
-  "assignedTeacher": 1,
-  "assignedTeachers": [1, 2],
-  "assignedSubjects": ["Math", "Science"],
-  "grid": [...],
-  "periodCount": 8,
-  "daysCount": 5
+  "assignedTeacher": "teacher_object_id",
+  "assignedTeachers": ["teacher_object_id1", "teacher_object_id2"],
+  "assignedSubjects": ["Math", "Science"]
 }
 
 // Get classroom details
@@ -135,11 +138,21 @@ GET /api/organisation/org123/classroom/class1
 // Update classroom
 PUT /api/organisation/org123/classroom/class1
 {
-  "assignedTeacher": 2,
-  "assignedTeachers": [2, 3],
-  "assignedSubjects": ["Math", "Physics"],
-  "grid": [...]
+  "classroomName": "Grade 10 Advanced Mathematics",
+  "assignedTeacher": "teacher_object_id2",
+  "assignedTeachers": ["teacher_object_id2", "teacher_object_id3"],
+  "assignedSubjects": ["Math", "Physics"]
 }
+
+// Update grid cell (flattened structure: 5 days × 6 periods = 30 cells)
+PATCH /api/organisation/org123/classroom/class1/grid/0/0
+{
+  "teachers": ["teacher_object_id1"],
+  "subjects": ["Math"]
+}
+
+// Get teacher's computed schedule
+GET /api/organisation/org123/teachers/1001/schedule
 ```
 
 ### Access Control

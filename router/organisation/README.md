@@ -33,16 +33,23 @@ Manages teachers within organizations:
 - `GET /:organisationId/teachers/:teacherId` - Get specific teacher
 - `PUT /:organisationId/teachers/:teacherId` - Update teacher
 - `DELETE /:organisationId/teachers/:teacherId` - Remove teacher
+- `GET /:organisationId/teachers/:teacherId/schedule` - Get teacher's computed schedule
 
 ### 3. classroomRoutes.js
 Handles classroom operations:
-- `POST /` - Create new classroom (requires classroomId and classroomName)
+- `POST /` - Create new classroom (requires organisationId, classroomId and classroomName)
 - `GET /:organisationId/classroom/:classroomId` - Get classroom
 - `PUT /:organisationId/classroom/:classroomId` - Update classroom (includes classroomName)
+
+**Note**: Classrooms are now stored as an array in organisations, supporting multiple classrooms per organisation.
 
 ### 4. gridRoutes.js
 Manages schedule grid operations:
 - `PATCH /:organisationId/classroom/:classroomId/grid/:row/:col` - Update grid cell
+
+**Note**: Grid structure is now flattened (5 days × 6 periods = 30 cells total). Each cell contains:
+- `teachers`: Array of teacher ObjectIds assigned to this time slot
+- `subjects`: Array of subjects taught in this time slot
 
 ### 5. accessRoutes.js
 Handles permission and access control management:
@@ -115,16 +122,11 @@ PUT /api/organisation/org123/teachers/1/permissions
 POST /api/organisation/
 {
   "organisationId": "org123",
-  "name": "Classroom A",
-  "admin": "admin@example.com",
   "classroomId": "class1",
   "classroomName": "Grade 10 Mathematics",
-  "assignedTeacher": 1,
-  "assignedTeachers": [1, 2],
-  "assignedSubjects": ["Math", "Science"],
-  "grid": [...],
-  "periodCount": 8,
-  "daysCount": 5
+  "assignedTeacher": "teacher_object_id",
+  "assignedTeachers": ["teacher_object_id1", "teacher_object_id2"],
+  "assignedSubjects": ["Math", "Science"]
 }
 
 // Get classroom details
@@ -133,10 +135,17 @@ GET /api/organisation/org123/classroom/class1
 // Update classroom
 PUT /api/organisation/org123/classroom/class1
 {
-  "assignedTeacher": 2,
-  "assignedTeachers": [2, 3],
-  "assignedSubjects": ["Math", "Physics"],
-  "grid": [...]
+  "classroomName": "Grade 10 Advanced Mathematics",
+  "assignedTeacher": "teacher_object_id2",
+  "assignedTeachers": ["teacher_object_id2", "teacher_object_id3"],
+  "assignedSubjects": ["Math", "Physics"]
+}
+
+// Update grid cell (flattened structure: 5 days × 6 periods = 30 cells)
+PATCH /api/organisation/org123/classroom/class1/grid/0/0
+{
+  "teachers": ["teacher_object_id1"],
+  "subjects": ["Math"]
 }
 ```
 

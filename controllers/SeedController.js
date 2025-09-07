@@ -32,13 +32,14 @@ function buildOrganisation(index) {
   const name = `Organisation ${index + 1}`;
   const periodCount = 6;
   const daysCount = 5;
-  const assignedSubjects = pickRandom(SUBJECT_POOL, 3);
+  const assignedSubjects = pickRandom(SUBJECT_POOL, 4); // More subjects for better coverage
   
   // Generate sample timetable grid: flattened array (daysCount * periodCount cells)
+  // Every cell will have at least 1 subject and will be populated with teachers later
   const totalSlots = daysCount * periodCount;
   const grid = Array.from({ length: totalSlots }, () => ({
-    teachers: [],
-    subjects: Math.random() > 0.2 ? pickRandom(assignedSubjects, 1) : []
+    teachers: [], // Will be populated when teachers are linked
+    subjects: pickRandom(assignedSubjects, 1) // Every cell gets at least 1 subject
   }));
 
   return new Organisation({
@@ -112,26 +113,36 @@ function buildUser(index, organisations) {
 }
 
 async function linkTeachersToOrganisations(teachers, organisations) {
+  console.log(`Linking ${teachers.length} teachers to ${organisations.length} organisations`);
+  
   for (const teacher of teachers) {
     const membershipCount = 1 + Math.floor(Math.random() * 2); // 1-2 orgs
     const chosenOrgs = pickRandom(organisations, membershipCount);
+    
     for (const org of chosenOrgs) {
       const subjects = pickRandom(SUBJECT_POOL, 2 + Math.floor(Math.random() * 2));
       const classes = pickRandom(CLASS_POOL, 2);
+      
+      // Add teacher to organization
       await teacher.addToOrganization(org.organisation.organisationId, subjects, classes, { edit: Math.random() > 0.7 });
       await org.addTeacher(teacher._id);
-      if (!org.classrooms.assignedTeachers) org.classrooms.assignedTeachers = [];
-      if (org.classrooms.assignedTeachers.length < 3) {
-        org.classrooms.assignedTeachers.push(teacher._id);
-      }
-      // Assign teacher to timetable slots where subjects match
-      if (org.classrooms && org.classrooms.grid && Array.isArray(org.classrooms.grid)) {
-        for (let day = 0; day < org.daysCount; day++) {
-          if (org.classrooms.grid[day] && Array.isArray(org.classrooms.grid[day])) {
-            for (let period = 0; period < org.periodCount; period++) {
-              const slot = org.classrooms.grid[day][period];
-              if (slot && slot.subject && subjects.includes(slot.subject)) {
-                slot.teacherId = teacher._id;
+      
+      // Add teacher to classroom's assigned teachers
+      for (const classroom of org.classrooms) {
+        if (!classroom.assignedTeachers) classroom.assignedTeachers = [];
+        if (classroom.assignedTeachers.length < 5) { // Allow up to 5 teachers per classroom
+          classroom.assignedTeachers.push(teacher._id);
+        }
+        
+        // Assign teacher to grid cells where subjects match
+        if (classroom.grid && Array.isArray(classroom.grid)) {
+          for (let cellIndex = 0; cellIndex < classroom.grid.length; cellIndex++) {
+            const cell = classroom.grid[cellIndex];
+            if (cell && cell.subjects && cell.subjects.length > 0) {
+              // Check if teacher teaches any of the subjects in this cell
+              const hasMatchingSubject = cell.subjects.some(subject => subjects.includes(subject));
+              if (hasMatchingSubject && !cell.teachers.includes(teacher._id)) {
+                cell.teachers.push(teacher._id);
               }
             }
           }
@@ -140,9 +151,41 @@ async function linkTeachersToOrganisations(teachers, organisations) {
     }
     await teacher.save();
   }
+  
+  // Ensure every grid cell has at least 1 teacher
   for (const org of organisations) {
+    for (const classroom of org.classrooms) {
+      if (classroom.grid && Array.isArray(classroom.grid)) {
+        for (let cellIndex = 0; cellIndex < classroom.grid.length; cellIndex++) {
+          const cell = classroom.grid[cellIndex];
+          if (cell && cell.teachers.length === 0) {
+            // Find a teacher who teaches the subject in this cell
+            const cellSubjects = cell.subjects || [];
+            const availableTeachers = org.teachers.filter(teacherId => {
+              const teacher = teachers.find(t => t._id.toString() === teacherId.toString());
+              if (!teacher) return false;
+              const orgMembership = teacher.getOrganizationMembership(org.organisation.organisationId);
+              return orgMembership && orgMembership.subjects.some(subject => cellSubjects.includes(subject));
+            });
+            
+            if (availableTeachers.length > 0) {
+              const randomTeacher = pickRandom(availableTeachers, 1)[0];
+              cell.teachers.push(randomTeacher);
+            } else {
+              // If no teacher matches, assign any teacher from this org
+              if (org.teachers.length > 0) {
+                const randomTeacher = pickRandom(org.teachers, 1)[0];
+                cell.teachers.push(randomTeacher);
+              }
+            }
+          }
+        }
+      }
+    }
     await org.save();
   }
+  
+  console.log('Teacher linking completed - every grid cell now has at least 1 teacher');
 }
 
 async function linkUsersToTeachers(users, teachers) {

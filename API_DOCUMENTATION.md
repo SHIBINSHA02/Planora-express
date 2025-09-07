@@ -72,12 +72,17 @@ Organisation teachers
 - GET `/organisation/:organisationId/teachers/class/:className` → Teachers by class
 - GET `/organisation/:organisationId/teachers/active` → Active teachers
 - GET `/organisation/:organisationId/teachers/count` → Teacher count
+- GET `/organisation/:organisationId/teachers/:teacherId/schedule` → Get teacher's computed schedule
 
 Organisation classrooms and grid
 - POST `/organisation/` → Create classroom (requires organisation and classroom payload)
 - GET `/organisation/:organisationId/classroom/:classroomId` → Get classroom
 - PUT `/organisation/:organisationId/classroom/:classroomId` → Update classroom
 - PATCH `/organisation/:organisationId/classroom/:classroomId/grid/:row/:col` → Update grid cell
+
+**Note**: Grid structure is now flattened (5 days × 6 periods = 30 cells total). Each cell contains:
+- `teachers`: Array of teacher ObjectIds assigned to this time slot
+- `subjects`: Array of subjects taught in this time slot
 
 Organisation permissions
 - GET `/organisation/:organisationId/teachers/:teacherId/permissions` → Get permissions
