@@ -31,4 +31,7 @@ router.get('/:organisationId/teachers/active', TeacherController.getActiveTeache
 // GET: Get teacher count in an organisation
 router.get('/:organisationId/teachers/count', TeacherController.getTeacherCount);
 
+// GET: Get teacher's schedule for a specific organisation
+router.get('/:organisationId/teachers/:teacherId/schedule', TeacherController.getTeacherSchedule);
+
 module.exports = router;

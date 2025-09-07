@@ -1,7 +1,6 @@
-// models/Teacher.js
 const mongoose = require('mongoose');
 
-// Schema for individual organization membership
+// Schema for individual organization membership (removed 'schedule' field - now computed from classroom grids)
 const organizationMembershipSchema = new mongoose.Schema({
   organisationId: {
     type: String,
@@ -28,25 +27,6 @@ const organizationMembershipSchema = new mongoose.Schema({
       message: 'At least one class is required for this organization',
     },
   },
-  schedule: [{
-    classroom: {
-      type: String,
-      trim: true,
-      default: null, // Allow null for unassigned slots
-    },
-    subject: {
-      type: String,
-      trim: true,
-      default: null, // Allow null for unassigned slots
-      validate: {
-        validator: function (value) {
-          // Ensure subject is either null or in teacher's subjects for this organization
-          return value === null || this.parent().subjects.includes(value);
-        },
-        message: 'Subject must be one of the teacher\'s assigned subjects for this organization',
-      },
-    },
-  }],
   permissions: {
     view: {
       type: Boolean,
@@ -101,7 +81,7 @@ const teacherSchema = new mongoose.Schema({
     type: String,
     trim: true
   },
-  // Array of organization memberships
+  // Array of organization memberships (no schedule here)
   organizations: [organizationMembershipSchema],
   
   // Global teacher settings
@@ -136,43 +116,23 @@ const teacherSchema = new mongoose.Schema({
   timestamps: true, // Add createdAt and updatedAt fields
 });
 
-// Method to get schedule slot by row and column indices for a specific organization
-teacherSchema.methods.getScheduleSlot = function(organisationId, row, col, periodCount) {
-  const orgMembership = this.organizations.find(org => org.organisationId === organisationId);
-  if (!orgMembership) {
-    throw new Error('Teacher is not a member of this organization');
-  }
-  const index = row * periodCount + col;
-  return orgMembership.schedule[index];
-};
-
-// Method to set schedule slot by row and column indices for a specific organization
-teacherSchema.methods.setScheduleSlot = function(organisationId, row, col, slotData, periodCount) {
-  const orgMembership = this.organizations.find(org => org.organisationId === organisationId);
-  if (!orgMembership) {
-    throw new Error('Teacher is not a member of this organization');
-  }
-  const index = row * periodCount + col;
-  orgMembership.schedule[index] = slotData;
-};
-
-// Method to check if teacher has edit access for a specific organization
+// Method to check if teacher has edit access for a specific organization (unchanged)
 teacherSchema.methods.hasEditAccess = function(organisationId) {
   const orgMembership = this.organizations.find(org => org.organisationId === organisationId);
   return this.isActive && orgMembership && orgMembership.isActive && orgMembership.permissions.edit;
 };
 
-// Method to get teacher's organization membership
+// Method to get teacher's organization membership (unchanged)
 teacherSchema.methods.getOrganizationMembership = function(organisationId) {
   return this.organizations.find(org => org.organisationId === organisationId);
 };
 
-// Method to get all organizations the teacher belongs to
+// Method to get all organizations the teacher belongs to (unchanged)
 teacherSchema.methods.getOrganizations = function() {
   return this.organizations.map(org => org.organisationId);
 };
 
-// Method to get organization details for a specific organization
+// Method to get organization details for a specific organization (updated populate for array classrooms)
 teacherSchema.methods.getOrganisationDetails = async function(organisationId) {
   const Organisation = require('./Organisation');
   return await Organisation.findOne({ 'organisation.organisationId': organisationId })
@@ -181,12 +141,12 @@ teacherSchema.methods.getOrganisationDetails = async function(organisationId) {
     .populate('classrooms.assignedTeachers');
 };
 
-// Method to check if teacher belongs to a specific organisation
+// Method to check if teacher belongs to a specific organisation (unchanged)
 teacherSchema.methods.belongsToOrganisation = function(organisationId) {
   return this.organizations.some(org => org.organisationId === organisationId);
 };
 
-// Method to get teacher's schedule size based on organisation settings
+// Method to get teacher's schedule size based on organisation settings (unchanged)
 teacherSchema.methods.getScheduleSize = async function(organisationId) {
   const organisation = await this.getOrganisationDetails(organisationId);
   if (organisation) {
@@ -199,7 +159,7 @@ teacherSchema.methods.getScheduleSize = async function(organisationId) {
   return null;
 };
 
-// Method to add teacher to a new organization
+// Method to add teacher to a new organization (updated: no schedule init, as it's computed)
 teacherSchema.methods.addToOrganization = async function(organisationId, subjects, classes, permissions = {}) {
   const Organisation = require('./Organisation');
   const organisation = await Organisation.findOne({ 'organisation.organisationId': organisationId });
@@ -213,18 +173,11 @@ teacherSchema.methods.addToOrganization = async function(organisationId, subject
     throw new Error('Teacher is already a member of this organization');
   }
 
-  // Create schedule based on organization's period and days count
-  const schedule = new Array(organisation.daysCount * organisation.periodCount).fill({ 
-    classroom: null, 
-    subject: null 
-  });
-
-  // Add organization membership
+  // Add organization membership (no schedule - computed later)
   this.organizations.push({
     organisationId,
     subjects,
     classes,
-    schedule,
     permissions: {
       view: true,
       edit: false,
@@ -240,7 +193,7 @@ teacherSchema.methods.addToOrganization = async function(organisationId, subject
   return this.save();
 };
 
-// Method to remove teacher from an organization
+// Method to remove teacher from an organization (unchanged)
 teacherSchema.methods.removeFromOrganization = function(organisationId) {
   const orgIndex = this.organizations.findIndex(org => org.organisationId === organisationId);
   if (orgIndex === -1) {
@@ -251,7 +204,7 @@ teacherSchema.methods.removeFromOrganization = function(organisationId) {
   return this.save();
 };
 
-// Method to update organization-specific data
+// Method to update organization-specific data (unchanged, removed schedule update)
 teacherSchema.methods.updateOrganizationData = function(organisationId, updateData) {
   const orgMembership = this.organizations.find(org => org.organisationId === organisationId);
   if (!orgMembership) {
@@ -267,26 +220,54 @@ teacherSchema.methods.updateOrganizationData = function(organisationId, updateDa
   return this.save();
 };
 
-// Method to get teacher's schedule for a specific organization
-teacherSchema.methods.getScheduleForOrganization = function(organisationId) {
-  const orgMembership = this.organizations.find(org => org.organisationId === organisationId);
-  if (!orgMembership) {
-    throw new Error('Teacher is not a member of this organization');
+// New method: Compute teacher's schedule from classroom grids (supports 5 days, variable periods)
+teacherSchema.methods.getMySchedule = async function(organisationId) {
+  const Organisation = require('./Organisation');
+  const organisation = await Organisation.findByOrganisationId(organisationId);
+  if (!organisation || !this.belongsToOrganisation(organisationId)) {
+    throw new Error('Teacher not in this organization or organization not found');
   }
-  return orgMembership.schedule;
+
+  const { daysCount, periodCount, totalSlots } = {
+    daysCount: organisation.daysCount, // Default 5
+    periodCount: organisation.periodCount, // Variable
+    totalSlots: organisation.daysCount * organisation.periodCount
+  };
+
+  // Initialize empty schedule array (flattened slots)
+  const schedule = Array(totalSlots).fill(null);
+
+  // Aggregate assignments from all classrooms' grids
+  for (const classroom of organisation.classrooms) {
+    for (let cellIdx = 0; cellIdx < classroom.grid.length; cellIdx++) {
+      const cell = classroom.grid[cellIdx];
+      if (cell.teachers && cell.teachers.some(tId => tId.toString() === this._id.toString())) {
+        let slot = schedule[cellIdx];
+        if (!slot) {
+          slot = {
+            classroom: classroom.classroomId,
+            subjects: [],
+            // Note: teachers include this teacher, but for display, we can omit self-listing
+          };
+        }
+        // Append subjects (handle multiples)
+        slot.subjects.push(...(cell.subjects || []));
+        schedule[cellIdx] = slot;
+      }
+    }
+  }
+
+  // Clean up: remove duplicates in subjects if needed
+  schedule.forEach(slot => {
+    if (slot && slot.subjects.length > 0) {
+      slot.subjects = [...new Set(slot.subjects)]; // Unique subjects
+    }
+  });
+
+  return { schedule, daysCount, periodCount }; // Return with metadata for frontend rendering
 };
 
-// Method to update teacher's schedule for a specific organization
-teacherSchema.methods.updateScheduleForOrganization = function(organisationId, newSchedule) {
-  const orgMembership = this.organizations.find(org => org.organisationId === organisationId);
-  if (!orgMembership) {
-    throw new Error('Teacher is not a member of this organization');
-  }
-  orgMembership.schedule = newSchedule;
-  return this.save();
-};
-
-// Indexes for efficient querying
+// Indexes for efficient querying (unchanged)
 teacherSchema.index({ id: 1 }, { unique: true }); // Global unique teacher ID
 teacherSchema.index({ email: 1 }, { unique: true }); // Unique email
 teacherSchema.index({ name: 1 });
@@ -295,7 +276,7 @@ teacherSchema.index({ 'organizations.subjects': 1 }); // Index for subject queri
 teacherSchema.index({ 'organizations.classes': 1 }); // Index for class queries
 teacherSchema.index({ isActive: 1 });
 
-// Static methods for teacher operations
+// Static methods for teacher operations (unchanged)
 teacherSchema.statics.findByTeacherId = function(teacherId) {
   return this.findOne({ id: teacherId });
 };

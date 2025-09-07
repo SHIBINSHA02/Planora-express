@@ -16,7 +16,7 @@ class OrganisationController {
           periodCount: org.periodCount,
           daysCount: org.daysCount,
           teacherCount: org.teachers ? org.teachers.length : 0,
-          classroomCount: org.classrooms ? 1 : 0,
+          classroomCount: org.classrooms ? org.classrooms.length : 0,
           createdAt: org.createdAt,
           updatedAt: org.updatedAt
         }))
@@ -50,7 +50,7 @@ class OrganisationController {
           periodCount: organisation.periodCount,
           daysCount: organisation.daysCount,
           teachers: organisation.teachers || [],
-          classrooms: organisation.classrooms || null,
+          classrooms: organisation.classrooms || [],
           createdAt: organisation.createdAt,
           updatedAt: organisation.updatedAt
         }
@@ -88,7 +88,7 @@ class OrganisationController {
         periodCount: periodCount || 8,
         daysCount: daysCount || 5,
         teachers: [],
-        classrooms: null
+        classrooms: []
       });
 
       await organisation.save();
@@ -151,7 +151,7 @@ class OrganisationController {
           periodCount: organisation.periodCount,
           daysCount: organisation.daysCount,
           teacherCount: organisation.teachers ? organisation.teachers.length : 0,
-          classroomCount: organisation.classrooms ? 1 : 0,
+          classroomCount: organisation.classrooms ? organisation.classrooms.length : 0,
           createdAt: organisation.createdAt,
           updatedAt: organisation.updatedAt
         }
@@ -205,7 +205,7 @@ class OrganisationController {
         daysCount: organisation.daysCount,
         teacherCount: organisation.teachers ? organisation.teachers.length : 0,
         activeTeacherCount: organisation.teachers ? organisation.teachers.filter(t => t.isActive).length : 0,
-        classroomCount: organisation.classrooms ? 1 : 0,
+        classroomCount: organisation.classrooms ? organisation.classrooms.length : 0,
         totalSubjects: organisation.teachers ? 
           [...new Set(organisation.teachers.flatMap(t => t.organizationMembership?.find(om => om.organisationId === organisationId)?.subjects || []))].length : 0,
         totalClasses: organisation.teachers ? 

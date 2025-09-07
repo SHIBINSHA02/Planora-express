@@ -34,13 +34,12 @@ function buildOrganisation(index) {
   const daysCount = 5;
   const assignedSubjects = pickRandom(SUBJECT_POOL, 3);
   
-  // Generate sample timetable grid: daysCount rows, periodCount columns
-  const grid = Array.from({ length: daysCount }, () =>
-    Array.from({ length: periodCount }, () => ({
-      subject: Math.random() > 0.2 ? pickRandom(assignedSubjects, 1)[0] : null,
-      teacherId: null
-    }))
-  );
+  // Generate sample timetable grid: flattened array (daysCount * periodCount cells)
+  const totalSlots = daysCount * periodCount;
+  const grid = Array.from({ length: totalSlots }, () => ({
+    teachers: [],
+    subjects: Math.random() > 0.2 ? pickRandom(assignedSubjects, 1) : []
+  }));
 
   return new Organisation({
     organisation: {
@@ -51,13 +50,14 @@ function buildOrganisation(index) {
     teachers: [],
     periodCount,
     daysCount,
-    classrooms: {
+    classrooms: [{
       classroomId: `cls-${index + 1}`,
       classroomName: `Classroom ${index + 1}`,
-      assignedSubjects,
+      assignedTeacher: null,
       assignedTeachers: [],
+      assignedSubjects,
       grid
-    }
+    }]
   });
 }
 
@@ -198,15 +198,36 @@ exports.seed = async (req, res) => {
 
     console.log(`Created ${allTeachers.length} teachers and ${allOrganisations.length} organisations`);
 
-    // Ensure all organisations have a valid grid
+    // Ensure all organisations have valid classrooms with proper grids
     for (const org of allOrganisations) {
-      if (!org.classrooms.grid || !Array.isArray(org.classrooms.grid) || org.classrooms.grid.length !== org.daysCount) {
-        org.classrooms.grid = Array.from({ length: org.daysCount }, () =>
-          Array.from({ length: org.periodCount }, () => ({
-            subject: Math.random() > 0.2 ? pickRandom(org.classrooms.assignedSubjects, 1)[0] : null,
-            teacherId: null
-          }))
-        );
+      if (!org.classrooms || org.classrooms.length === 0) {
+        // Create a default classroom if none exists
+        const totalSlots = org.daysCount * org.periodCount;
+        const grid = Array.from({ length: totalSlots }, () => ({
+          teachers: [],
+          subjects: []
+        }));
+        
+        org.classrooms = [{
+          classroomId: `cls-${org.organisation.organisationId}`,
+          classroomName: `Default Classroom`,
+          assignedTeacher: null,
+          assignedTeachers: [],
+          assignedSubjects: [],
+          grid
+        }];
+        await org.save();
+      } else {
+        // Ensure each classroom has a properly sized grid
+        for (const classroom of org.classrooms) {
+          const totalSlots = org.daysCount * org.periodCount;
+          if (!classroom.grid || classroom.grid.length !== totalSlots) {
+            classroom.grid = Array.from({ length: totalSlots }, () => ({
+              teachers: [],
+              subjects: []
+            }));
+          }
+        }
         await org.save();
       }
     }

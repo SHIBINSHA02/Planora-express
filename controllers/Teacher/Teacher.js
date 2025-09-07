@@ -42,7 +42,7 @@ const checkTeachersExistInOrganisation = async (teacherIds, organisationId) => {
   // Check if teachers exist in the database and belong to the specified organisation
   const foundTeachers = await Teacher.find({ 
     '_id': { '$in': validIds },
-    'organisationId': organisationId 
+    'organizations.organisationId': organisationId 
   });
 
   if (foundTeachers.length !== validIds.length) {

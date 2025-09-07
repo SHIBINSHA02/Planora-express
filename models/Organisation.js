@@ -30,7 +30,7 @@ const classroomSchema = new mongoose.Schema({
     ref: 'Teacher'
   }],
   assignedSubjects: [String],
-  // The grid is an array of gridCellSchema objects
+  // The grid is an array of gridCellSchema objects (flattened: totalSlots = daysCount * periodCount)
   grid: [gridCellSchema]
 });
 
@@ -66,14 +66,10 @@ const organisationSchema = new mongoose.Schema({
     required: true,
     default: 5
   },
-  classrooms: {
-    type: classroomSchema, // Classrooms is a subdocument
-    required: true
-  },
-  
+  classrooms: [classroomSchema], // Changed to array to support multiple classrooms
 });
 
-// Methods for managing teachers in the organisation
+// Methods for managing teachers in the organisation (unchanged)
 organisationSchema.methods.addTeacher = function(teacherId) {
   if (!this.teachers.includes(teacherId)) {
     this.teachers.push(teacherId);
@@ -90,13 +86,13 @@ organisationSchema.methods.getTeachers = function() {
   return this.populate('teachers');
 };
 
-// Method to get all teachers with full details for this organization
+// Method to get all teachers with full details for this organization (unchanged)
 organisationSchema.methods.getAllTeachers = async function() {
   const Teacher = require('./Teacher');
   return await Teacher.findTeachersInOrganization(this.organisation.organisationId);
 };
 
-// Method to get a specific teacher by ID in this organization
+// Method to get a specific teacher by ID in this organization (unchanged)
 organisationSchema.methods.getTeacherById = async function(teacherId) {
   const Teacher = require('./Teacher');
   const teacher = await Teacher.findByTeacherId(teacherId);
@@ -106,7 +102,7 @@ organisationSchema.methods.getTeacherById = async function(teacherId) {
   return null;
 };
 
-// Method to get teachers by subject in this organization
+// Method to get teachers by subject in this organization (unchanged)
 organisationSchema.methods.getTeachersBySubject = async function(subject) {
   const Teacher = require('./Teacher');
   return await Teacher.find({ 
@@ -115,7 +111,7 @@ organisationSchema.methods.getTeachersBySubject = async function(subject) {
   });
 };
 
-// Method to get teachers by class in this organization
+// Method to get teachers by class in this organization (unchanged)
 organisationSchema.methods.getTeachersByClass = async function(className) {
   const Teacher = require('./Teacher');
   return await Teacher.find({ 
@@ -124,14 +120,14 @@ organisationSchema.methods.getTeachersByClass = async function(className) {
   });
 };
 
-// Method to check if a teacher exists in this organisation
+// Method to check if a teacher exists in this organisation (unchanged)
 organisationSchema.methods.hasTeacher = async function(teacherId) {
   const Teacher = require('./Teacher');
   const teacher = await Teacher.findByTeacherId(teacherId);
   return teacher ? teacher.belongsToOrganisation(this.organisation.organisationId) : false;
 };
 
-// Method to get teacher count for this organization
+// Method to get teacher count for this organization (unchanged)
 organisationSchema.methods.getTeacherCount = async function() {
   const Teacher = require('./Teacher');
   return await Teacher.countDocuments({ 
@@ -139,13 +135,45 @@ organisationSchema.methods.getTeacherCount = async function() {
   });
 };
 
-// Method to get active teachers only for this organization
+// Method to get active teachers only for this organization (unchanged)
 organisationSchema.methods.getActiveTeachers = async function() {
   const Teacher = require('./Teacher');
   return await Teacher.findActiveTeachersInOrganization(this.organisation.organisationId);
 };
 
-// Static methods for organisation-level teacher operations
+// New method to get a specific classroom by ID (for services like getClassroom)
+organisationSchema.methods.getClassroomById = function(classroomId) {
+  return this.classrooms.find(cls => cls.classroomId === classroomId);
+};
+
+// New static method to create a classroom with initialized grid (call via service when creating)
+organisationSchema.statics.createClassroom = async function(organisationId, classroomData) {
+  const organisation = await this.findByOrganisationId(organisationId);
+  if (!organisation) {
+    throw new Error('Organisation not found');
+  }
+
+  // Initialize grid with size based on org settings (5 days * periodCount cells, empty)
+  const totalSlots = organisation.daysCount * organisation.periodCount;
+  const grid = Array.from({ length: totalSlots }, () => ({
+    teachers: [],
+    subjects: []
+  }));
+
+  // Create new classroom object directly
+  const newClassroom = {
+    ...classroomData,
+    grid
+  };
+
+  organisation.classrooms.push(newClassroom);
+  await organisation.save();
+
+  // Return the newly added classroom
+  return organisation.classrooms[organisation.classrooms.length - 1];
+};
+
+// Static methods for organisation-level teacher operations (unchanged, but adjusted for array classrooms)
 organisationSchema.statics.findByOrganisationId = function(organisationId) {
   return this.findOne({ 'organisation.organisationId': organisationId });
 };
@@ -191,7 +219,7 @@ organisationSchema.statics.addTeacherToOrganisation = async function(organisatio
       isActive: true
     });
     
-    // Add to organization
+    // Add to organization (initializes without schedule, as it's now computed)
     await teacher.addToOrganization(
       organisationId, 
       teacherData.subjects, 
@@ -236,7 +264,7 @@ organisationSchema.statics.removeTeacherFromOrganisation = async function(organi
   return teacher;
 };
 
-// Method to get teacher's organization-specific data
+// Method to get teacher's organization-specific data (unchanged)
 organisationSchema.statics.getTeacherOrganizationData = async function(organisationId, teacherId) {
   const Teacher = require('./Teacher');
   const teacher = await Teacher.findByTeacherId(teacherId);
@@ -247,6 +275,17 @@ organisationSchema.statics.getTeacherOrganizationData = async function(organisat
   
   return teacher.getOrganizationMembership(organisationId);
 };
+
+// Updated method to get organisation details (adjusted populate for array of classrooms)
+organisationSchema.methods.getOrganisationDetails = async function() {
+  return await this.model('Organisation').findById(this._id)
+    .populate('teachers')
+    .populate('classrooms.assignedTeacher')
+    .populate('classrooms.assignedTeachers');
+};
+
+// Indexes (added for classroomId queries)
+organisationSchema.index({ 'classrooms.classroomId': 1 });
 
 // Create and export the Organisation model
 const Organisation = mongoose.model('Organisation', organisationSchema);

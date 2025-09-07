@@ -364,6 +364,44 @@ class TeacherController {
       res.status(500).json({ message: 'Error fetching teacher count', error: error.message });
     }
   }
+
+  // Get teacher's schedule for a specific organisation
+  static async getTeacherSchedule(req, res) {
+    try {
+      const { organisationId, teacherId } = req.params;
+      const teacherIdNum = parseInt(teacherId);
+
+      // Check if organisation exists
+      const organisation = await Organisation.findOne({ 'organisation.organisationId': organisationId });
+      if (!organisation) {
+        return res.status(404).json({ message: 'Organisation not found' });
+      }
+
+      // Get teacher
+      const teacher = await Teacher.findByTeacherId(teacherIdNum);
+      if (!teacher || !teacher.belongsToOrganisation(organisationId)) {
+        return res.status(404).json({ message: 'Teacher not found in this organisation' });
+      }
+
+      // Get teacher's computed schedule
+      const scheduleData = await teacher.getMySchedule(organisationId);
+
+      res.status(200).json({ 
+        organisation: organisationId,
+        teacher: {
+          id: teacher.id,
+          name: teacher.name,
+          email: teacher.email
+        },
+        schedule: scheduleData.schedule,
+        daysCount: scheduleData.daysCount,
+        periodCount: scheduleData.periodCount,
+        totalSlots: scheduleData.schedule.length
+      });
+    } catch (error) {
+      res.status(500).json({ message: 'Error fetching teacher schedule', error: error.message });
+    }
+  }
 }
 
 module.exports = TeacherController;

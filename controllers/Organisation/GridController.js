@@ -14,20 +14,22 @@ class GridController {
         return res.status(400).json({ message: 'Teachers and subjects must be arrays' });
       }
 
-      const organisation = await Organisation.findOne({
-        'organisation.organisationId': organisationId,
-        'classrooms.classroomId': classroomId
-      });
-      if (!organisation || !organisation.classrooms) {
-        return res.status(404).json({ message: 'Classroom or Organisation not found' });
+      // Find organisation
+      const organisation = await Organisation.findByOrganisationId(organisationId);
+      if (!organisation) {
+        return res.status(404).json({ message: 'Organisation not found' });
+      }
+
+      // Find the specific classroom
+      const classroom = organisation.getClassroomById(classroomId);
+      if (!classroom) {
+        return res.status(404).json({ message: 'Classroom not found' });
       }
 
       const rowIndex = parseInt(row);
       const colIndex = parseInt(col);
-      const {
-        periodCount,
-        daysCount
-      } = organisation;
+      const { periodCount, daysCount } = organisation;
+      
       if (
         isNaN(rowIndex) || rowIndex < 0 || rowIndex >= daysCount ||
         isNaN(colIndex) || colIndex < 0 || colIndex >= periodCount
@@ -35,18 +37,36 @@ class GridController {
         return res.status(400).json({ message: 'Invalid row or column index' });
       }
 
+      // Calculate flattened index (row * periodCount + col)
+      const cellIndex = rowIndex * periodCount + colIndex;
+      
+      // Ensure grid array is properly sized
+      if (!classroom.grid || classroom.grid.length !== daysCount * periodCount) {
+        // Initialize grid if not properly sized
+        const totalSlots = daysCount * periodCount;
+        classroom.grid = Array.from({ length: totalSlots }, () => ({
+          teachers: [],
+          subjects: []
+        }));
+      }
+
       // Update the specific grid cell
-      organisation.classrooms.grid[rowIndex * periodCount + colIndex] = {
+      classroom.grid[cellIndex] = {
         teachers,
         subjects
       };
 
-      // Validate the updated document
-      await organisation.validate();
-
       // Save the updated organisation
       await organisation.save();
-      res.status(200).json({ message: 'Grid cell updated', classrooms: organisation.classrooms });
+      
+      res.status(200).json({ 
+        message: 'Grid cell updated successfully', 
+        classroom: classroom,
+        organisation: organisationId,
+        cellIndex: cellIndex,
+        row: rowIndex,
+        col: colIndex
+      });
     } catch (error) {
       res.status(400).json({ message: 'Error updating grid cell', error: error.message });
     }
