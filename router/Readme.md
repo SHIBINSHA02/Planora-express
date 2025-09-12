@@ -29,12 +29,7 @@ The organization router has been split into modular components for better mainta
 
 ## Recent Changes Made
 
-### Route Path Updates
-- Changed `GET /:classroomId` to `GET /organisation/:organisationId/classroom/:classroomId`
-- Changed `PATCH /:classroomId/grid/:row/:col` to `PATCH /organisation/:organisationId/classroom/:classroomId/grid/:row/:col`
-- Changed `PUT /:classroomId` to `PUT /organisation/:organisationId/classroom/:classroomId`
-- Added `GET /organisation/:organisationId/teachers/:teacherId/schedule` for computed teacher schedules
-- These changes ensure routes reflect both `organisationId` and `classroomId` as required
+
 
 ### Schema Updates
 - **Classrooms**: Changed from single object to array structure to support multiple classrooms per organisation

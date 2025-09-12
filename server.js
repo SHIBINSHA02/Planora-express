@@ -8,20 +8,17 @@ const SeedController = require('./controllers/SeedController');
 const app = express();
 const port = process.env.PORT || 3000;
 const morgan = require('morgan')
-// Middleware to parse JSON bodies
+
 app.use(express.json());
 app.use(cors());
 app.use(morgan('tiny'));
-// Mount the main router (includes auth, users, organizations, teachers)
 app.use('/api', router);
 
-// Mount the organisation-specific router
 app.use('/api/organisation', organisationRouter);
 
 // Explicit seed endpoint to generate minimum 10 docs per model
 app.get('/api/seed', SeedController.seed);
 
-// Basic route for health check
 app.get('/api/health', (req, res) => {
   res.status(200).json({ status: 'OK', message: 'Server is running' });
 });

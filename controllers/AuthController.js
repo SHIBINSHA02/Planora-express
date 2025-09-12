@@ -1,4 +1,5 @@
 // controllers/AuthController.js
+const { v4: uuidv4 } = require("uuid");
 const Auth = require('../models/Auth');
 const isEmpty = require('is-empty');
 
@@ -7,8 +8,6 @@ class AuthController {
   static async register(req, res) {
     try {
       const { username, email, password, firstName, lastName } = req.body;
-
-      // Validate input
       if (isEmpty(username) || isEmpty(email) || isEmpty(password) || isEmpty(firstName) || isEmpty(lastName)) {
         return res.status(400).json({ message: 'Username, email, password, firstName, and lastName are required' });
       }
@@ -24,6 +23,7 @@ class AuthController {
 
       // Create new user
       const user = new Auth({
+        userId: uuidv4(),
         username,
         email,
         password, // Note: In production, this should be hashed
