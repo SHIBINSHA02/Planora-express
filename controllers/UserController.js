@@ -37,34 +37,39 @@ class UserController {
   }
 
   // Update user
+  
+
   static async updateUser(req, res) {
-    try {
-      const { userId } = req.params;
-      const { firstName, lastName, email } = req.body;
+  try {
+    const { userId } = req.params;
 
-      const user = await Auth.findOneAndUpdate(
-        { userId },
-        { 
-          firstName, 
-          lastName, 
-          email, 
-          updatedAt: new Date()
-        },
-        { new: true, runValidators: true }
-      ).select('-password');
+    // Only take fields that are present in the request body
+    const updates = {};
+    if (req.body.firstName !== undefined) updates.firstName = req.body.firstName;
+    if (req.body.lastName !== undefined) updates.lastName = req.body.lastName;
+    if (req.body.email !== undefined) updates.email = req.body.email;
 
-      if (!user) {
-        return res.status(404).json({ message: 'User not found' });
-      }
+    updates.updatedAt = new Date();
 
-      res.status(200).json({
-        message: 'User updated successfully',
-        user
-      });
-    } catch (error) {
-      res.status(400).json({ message: 'Error updating user', error: error.message });
+    const user = await Auth.findOneAndUpdate(
+      { userId },
+      updates,
+      { new: true, runValidators: true }
+    ).select('-password');
+
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
     }
+
+    res.status(200).json({
+      message: 'User updated successfully',
+      user
+    });
+  } catch (error) {
+    res.status(400).json({ message: 'Error updating user', error: error.message });
   }
+}
+
 }
 
 module.exports = UserController;
