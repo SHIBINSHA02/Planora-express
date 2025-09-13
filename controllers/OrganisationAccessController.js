@@ -5,14 +5,14 @@ const isEmpty = require('is-empty');
 
 class OrganisationAccessController {
   // Grant organization access to user
-  static async grantOrganizationAccess(req, res) {
+static async grantOrganizationAccess(req, res) {
     try {
-      const { userId } = req.params;
-      const { organisationId, permissions, grantedBy } = req.body;
+      const { id: grantedById } = req.params; // ID of the person granting access
+      const { userId, organisationId, permissions } = req.body; // ID of the person to whom access is granted, along with other data
 
       // Validate input
-      if (isEmpty(organisationId) || isEmpty(permissions) || isEmpty(grantedBy)) {
-        return res.status(400).json({ message: 'organisationId, permissions, and grantedBy are required' });
+      if (isEmpty(userId) || isEmpty(organisationId) || isEmpty(permissions) || isEmpty(grantedById)) {
+        return res.status(400).json({ message: 'userId, organisationId, permissions, and grantedById are required' });
       }
 
       // Check if organization exists
@@ -21,7 +21,7 @@ class OrganisationAccessController {
         return res.status(404).json({ message: 'Organization not found' });
       }
 
-      // Find user
+      // Find the user to whom access is being granted
       const user = await Auth.findOne({ userId });
       if (!user) {
         return res.status(404).json({ message: 'User not found' });
@@ -32,7 +32,7 @@ class OrganisationAccessController {
         organisationId,
         organisation.organisation.name,
         permissions,
-        grantedBy
+        grantedById // The ID from the URL is now 'grantedById'
       );
 
       const updatedUser = await Auth.findOne({ userId }).select('-password');
